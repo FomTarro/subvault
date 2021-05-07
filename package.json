@@ -1,0 +1,50 @@
+{
+  "name": "graph-guesser",
+  "version": "1.0.0",
+  "description": "guess the show based on ratings",
+  "main": "server.js",
+  "scripts": {
+    "test": "jest --coverage --collectCoverageFrom=src/**/*.{js,jsx}",
+    "test-leaks": "jest --runInBand --detectOpenHandles",
+    "start": "npm run web-server",
+    "web-server": "node server.js",
+    "build-css": "sass sass:public/css",
+    "build-css-watch": "sass --watch sass:public/css",
+    "check-push": "npm run test",
+    "pull-modules": "git submodule update --recursive --remote"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FomTarro/graph-guesser.git"
+  },
+  "author": "Tom '@FomTarro' Farro",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FomTarro/graph-guesser/issues"
+  },
+  "homepage": "https://github.com/FomTarro/graph-guesser#readme",
+  "devDependencies": {
+    "jest": "25.2.1",
+    "nock": "12.0.3",
+    "supertest": "4.0.2",
+    "sass": "1.26.5",
+    "husky": "^3.1.0"
+  },
+  "dependencies": {
+    "dotenv": "8.2.0",
+    "express": "^4.17.1",
+    "express-session": "1.17.1",
+    "ws": "^7.3.0",
+    "jsdom": "16.4.0",
+    "minify": "6.0.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run check-push",
+      "post-merge": "npm install"
+    }
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}
