@@ -12,6 +12,7 @@ const appConfig = {
     get TWITCH_CLIENT_SECRET(){ return process.env.twitch_client_secret; },
     get CALLBACK_URL() { return `${this.DOMAIN}/auth/twitch/callback`; },
     get WEB_LOAD_DIR(){ return path.join(__dirname, 'public'); },
+    get WEB_TEMPLATE_DIR(){ return path.join(__dirname, 'templates'); },
     get FILE_LOAD_DIR(){ return path.join(__dirname); },
 
     // clients
@@ -19,13 +20,14 @@ const appConfig = {
     get USER_ID_CLIENT(){ return require('./src/boundary/adapters/user.id.client')},
 
     // use cases
-    get READ_FILE_USECASE(){ return (require('./src/usecases/read.file.usecase'))},
+    get POPULATE_FILE_LISTS(){ return (require('./src/usecases/populate.file.lists.usecase'))},
 
     // models
     get WEB_SERVER() { return require('./src/boundary/web.server'); },
 
     // utils
     get HTTP_UTILS(){ return require('./src/utils/http.utils'); },
+    get FILE_UTILS(){ return require('./src/utils/file.utils'); },
 }
 
 module.exports.AppConfig = appConfig;

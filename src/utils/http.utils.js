@@ -3,7 +3,7 @@ const { AppConfig } = require('../../app.config');
 
 /**
  * Helper function for making web requests
- * @param {*} url The URL to GET
+ * @param {*} options The request options: host, endpoint, method, and optionally scope and token
  * @param {*} resolve The callback to execute on success (accepts in a Buffer)
  * @param {*} reject The callback to execute on failure (accepts in an Exception)
  * @param {*} logger The logger to print with
@@ -15,12 +15,14 @@ const { AppConfig } = require('../../app.config');
         path: options.endpoint,
         method: options.method 
     };
+    // use token if one given
     if(options.token){
         formattedOptions.headers = {
             'Authorization': 'Bearer ' + options.token,
             'Client-Id': AppConfig.TWITCH_CLIENT_ID,
         }
     }
+    // else get token for scope
     else if(options.scope){
         formattedOptions.headers = {
             'Authorization': 'Bearer ' + (options.scope == 'no_scope' ? 
@@ -124,4 +126,3 @@ async function getTokenNoScope(clientId, clientSecret){
 }
 
 module.exports.request = webRequest;
-module.exports.getToken = getTokenScope;

@@ -1,7 +1,5 @@
 const AppConfig = require('../../../app.config').AppConfig;
 
-const scope = 'user_read_subscriptions'
-
 async function getUserSub(userId, broadcasterId, token){
     var isSub = false;
     await AppConfig.HTTP_UTILS.request(

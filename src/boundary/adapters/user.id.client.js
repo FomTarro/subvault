@@ -2,8 +2,8 @@ const AppConfig = require('../../../app.config').AppConfig;
 
 const scope = 'no_scope'
 
-async function getUserId(username){
-    var id = undefined
+async function getUserInfo(username){
+    var info = {};
     await AppConfig.HTTP_UTILS.request(
         {
             scope: scope,
@@ -12,13 +12,13 @@ async function getUserId(username){
             method: 'GET'
         },
         (buffer) => { 
-            id = JSON.parse(buffer).data[0].id;
+            info = JSON.parse(buffer).data[0];
         },
         (error) => { 
         },
         console
     );
-    return id;
+    return info;
 }
 
-module.exports.getUserId = getUserId;
+module.exports.getUserInfo = getUserInfo;

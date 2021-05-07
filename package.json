@@ -36,7 +36,6 @@
     "express-session": "1.17.1",
     "ws": "^7.3.0",
     "jsdom": "16.4.0",
-    "handlebars": "^4.0.6",
     "passport": "^0.3.2",
     "passport-oauth": "^1.0.0",
     "request": "^2.81.0"

@@ -4,7 +4,6 @@ const session = require('express-session');
 const passport = require('passport');
 const OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
 const request = require('request');
-const handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs');
 
@@ -29,9 +28,10 @@ async function setup(){
         saveUninitialized: true
     }));
 
-    // app.use('/', express.static(AppConfig.WEB_LOAD_DIR));
     app.use(passport.initialize());
     app.use(passport.session());
+
+    app.use('/', express.static(AppConfig.WEB_TEMPLATE_DIR));
 
     // Override passport profile function to get user profile from Twitch API
     OAuth2Strategy.prototype.userProfile = function(accessToken, done) {
@@ -83,38 +83,34 @@ async function setup(){
     // Set route for OAuth redirect
     app.get('/auth/twitch/callback', passport.authenticate('twitch', { successRedirect: '/', failureRedirect: '/' }));
 
-    // Define a simple template to safely generate HTML with values from user's profile
-    const template = handlebars.compile(`
-    <html><head><title>Twitch Auth Sample</title></head>
-    <table>
-        <tr><th>Access Token</th><td>{{accessToken}}</td></tr>
-        <tr><th>Refresh Token</th><td>{{refreshToken}}</td></tr>
-        <tr><th>Display Name</th><td>{{display_name}}</td></tr>
-        <tr><th>Bio</th><td>{{bio}}</td></tr>
-        <tr><th>Image</th><td>{{logo}}</td></tr>
-    </table></html>`);
-
-    // If user has an authenticated session, display it, otherwise display link to authenticate
-    app.use('/', express.static(AppConfig.WEB_LOAD_DIR));
+    app.get('/broadcasters/:broadcaster', async (req, res) => {
+        const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster).id;
+        res.send(`no page for broadcaster: ${broadcaster_id} exists yet!`).status(204);
+        // TODO: make usecase to generate individual pages for all broadcasters who have files hosted
+    })
 
     app.get('/vault/:broadcaster/*', async (req, res) => {
         if(hasUserSession(req)){
             const user_id = req.session.passport.user.data[0].id;
-            const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserId(req.params.broadcaster);
-            if(await AppConfig.USER_SUB_CLIENT.getUserSub(user_id, broadcaster_id, req.session.passport.user.accessToken) == true){
+            const broadcaster_id = (await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster)).id;
+            if(user_id == broadcaster_id || (await AppConfig.USER_SUB_CLIENT.getUserSub(user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
                 const filePath = path.join(AppConfig.FILE_LOAD_DIR, req.path)
                 if(fs.existsSync(filePath)){
                     res.download(filePath);
                 }else{
-                    res.send(`${filePath} not found`).status(204);
+                    res.send(`file: ${filePath} not found`).status(204);
                 }
             }else{
-                res.send("Not Sub!").status(204);
+                res.send("file is available for subscribers only").status(204);
             }
         }else{
-            res.send("no session!").status(204);
+            res.send("please log in with Twitch").status(204);
         }
-    })
+        // TODO: make these not redirect to new pages if not allowed
+    });
+
+    //console.log(AppConfig.FILE_UTILS.getAllDirectories(path.join(AppConfig.FILE_LOAD_DIR, 'vault')));
+
     return app;
 }
 
