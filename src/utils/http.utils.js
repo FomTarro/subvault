@@ -15,20 +15,23 @@ const { AppConfig } = require('../../app.config');
         path: options.endpoint,
         method: options.method 
     };
-    if(options.scope){
-        logger.log('fetching token...');
+    if(options.token){
+        formattedOptions.headers = {
+            'Authorization': 'Bearer ' + options.token,
+            'Client-Id': AppConfig.TWITCH_CLIENT_ID,
+        }
+    }
+    else if(options.scope){
         formattedOptions.headers = {
             'Authorization': 'Bearer ' + (options.scope == 'no_scope' ? 
             await getTokenNoScope(AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET) : 
             await getTokenScope(options.scope, AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET)),
             'Client-Id': AppConfig.TWITCH_CLIENT_ID,
         }
-        logger.log(`token retrieved: ${formattedOptions['Authorization']}`);
-        // optionsget.headers['Client-ID'] = AppConfig.TWITCH_CLIENT_ID;
     }
+
     return new Promise(function(resolve, reject){
         const buffers = [];
-        logger.log(formattedOptions);
         request(formattedOptions, buffers, logger, resolve, reject);
     }).then(function(buffers){
         const combined = Buffer.concat(buffers);
@@ -40,7 +43,6 @@ const { AppConfig } = require('../../app.config');
 }
 
 async function request(options, buffers, log, resolve, reject){
-    log.log(options);
     // do http request
     // if 301, 302, 307, recurse with new URL and pass promise chain in
     // if 200 or whatever, resolve
@@ -81,7 +83,6 @@ async function request(options, buffers, log, resolve, reject){
 
 async function getTokenScope(scope, clientId, clientSecret){
     var token = undefined;
-    console.log(`getting token for scope : ${scope}`);
     await webRequest(
         {
             host: `id.twitch.tv`,
@@ -103,7 +104,6 @@ async function getTokenScope(scope, clientId, clientSecret){
 
 async function getTokenNoScope(clientId, clientSecret){
     var token = undefined;
-    console.log(`getting token`);
     await webRequest(
         {
             host: `id.twitch.tv`,

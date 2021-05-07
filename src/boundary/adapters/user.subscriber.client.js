@@ -2,16 +2,17 @@ const AppConfig = require('../../../app.config').AppConfig;
 
 const scope = 'user_read_subscriptions'
 
-async function getUserSub(userId, broadcasterId){
+async function getUserSub(userId, broadcasterId, token){
     var isSub = false;
     await AppConfig.HTTP_UTILS.request(
         {
-            scope: scope,
+            token: token,
             host: `api.twitch.tv`,
             endpoint: `/helix/subscriptions/user?broadcaster_id=${broadcasterId}&user_id=${userId}`,
             method: 'GET'
         },
         (buffer) => { 
+            // console.log(buffer.toString());
             isSub = true;
         },
         (error) => { 

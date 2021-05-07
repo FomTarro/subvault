@@ -12,13 +12,14 @@ const appConfig = {
     get TWITCH_CLIENT_SECRET(){ return process.env.twitch_client_secret; },
     get CALLBACK_URL() { return `${this.DOMAIN}/auth/twitch/callback`; },
     get WEB_LOAD_DIR(){ return path.join(__dirname, 'public'); },
+    get FILE_LOAD_DIR(){ return path.join(__dirname); },
 
     // clients
     get USER_SUB_CLIENT(){ return require('./src/boundary/adapters/user.subscriber.client')},
     get USER_ID_CLIENT(){ return require('./src/boundary/adapters/user.id.client')},
 
     // use cases
-    // TBD
+    get READ_FILE_USECASE(){ return (require('./src/usecases/read.file.usecase'))},
 
     // models
     get WEB_SERVER() { return require('./src/boundary/web.server'); },

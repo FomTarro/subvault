@@ -5,6 +5,8 @@ const passport = require('passport');
 const OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
 const request = require('request');
 const handlebars = require('handlebars');
+const path = require('path');
+const fs = require('fs');
 
 async function setup(){
     const app = express();
@@ -66,23 +68,17 @@ async function setup(){
         clientID: AppConfig.TWITCH_CLIENT_ID,
         clientSecret: AppConfig.TWITCH_CLIENT_SECRET,
         callbackURL: AppConfig.CALLBACK_URL,
-        state: true
+        state: true,
     },
     function(accessToken, refreshToken, profile, done) {
         profile.accessToken = accessToken;
         profile.refreshToken = refreshToken;
-
-        // Securely store user profile in your DB
-        //User.findOrCreate(..., function(err, user) {
-        //  done(err, user);
-        //});
-
         done(null, profile);
     }
     ));
 
     // Set route to start OAuth link, this is where you define scopes to request
-    app.get('/auth/twitch', passport.authenticate('twitch', { scope: 'user_read' }));
+    app.get('/auth/twitch', passport.authenticate('twitch', { scope: 'user:read:subscriptions' }));
 
     // Set route for OAuth redirect
     app.get('/auth/twitch/callback', passport.authenticate('twitch', { successRedirect: '/', failureRedirect: '/' }));
@@ -99,30 +95,26 @@ async function setup(){
     </table></html>`);
 
     // If user has an authenticated session, display it, otherwise display link to authenticate
-    app.get('/', (req, res) => {
-        if(hasUserSession(req)) {
-            console.log(req.session.passport.user);
-            res.send(template(req.session.passport.user));
-        } else {
-            res.send('<html><head><title>Twitch Auth Sample</title></head><a href="/auth/twitch"><img src="http://ttv-api.s3.amazonaws.com/assets/connect_dark.png"></a></html>');
-        }
-    });
+    app.use('/', express.static(AppConfig.WEB_LOAD_DIR));
 
-    app.get('/another-request', async (req, res) => {
+    app.get('/vault/:broadcaster/*', async (req, res) => {
         if(hasUserSession(req)){
             const user_id = req.session.passport.user.data[0].id;
-            const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserId('bonbombs');
-            console.log(broadcaster_id);
-            if(AppConfig.USER_SUB_CLIENT.getUserSub(user_id, broadcaster_id) == true){
-                res.send("OK!").status(200);
+            const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserId(req.params.broadcaster);
+            if(await AppConfig.USER_SUB_CLIENT.getUserSub(user_id, broadcaster_id, req.session.passport.user.accessToken) == true){
+                const filePath = path.join(AppConfig.FILE_LOAD_DIR, req.path)
+                if(fs.existsSync(filePath)){
+                    res.download(filePath);
+                }else{
+                    res.send(`${filePath} not found`).status(204);
+                }
             }else{
-                res.send("Not Sub!").sendStatus(204);
+                res.send("Not Sub!").status(204);
             }
         }else{
             res.send("no session!").status(204);
         }
     })
-    console.log(await AppConfig.USER_ID_CLIENT.getUserId('fomtarro'));
     return app;
 }
 
