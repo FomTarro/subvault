@@ -1,7 +1,7 @@
 {
-  "name": "graph-guesser",
+  "name": "subvault",
   "version": "1.0.0",
-  "description": "guess the show based on ratings",
+  "description": "reward hosting for twitch subs",
   "main": "server.js",
   "scripts": {
     "test": "jest --coverage --collectCoverageFrom=src/**/*.{js,jsx}",
@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FomTarro/graph-guesser.git"
+    "url": "git+https://github.com/FomTarro/subvault.git"
   },
   "author": "Tom '@FomTarro' Farro",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/FomTarro/graph-guesser/issues"
+    "url": "https://github.com/FomTarro/subvault/issues"
   },
-  "homepage": "https://github.com/FomTarro/graph-guesser#readme",
+  "homepage": "https://github.com/FomTarro/subvault#readme",
   "devDependencies": {
     "jest": "25.2.1",
     "nock": "12.0.3",
