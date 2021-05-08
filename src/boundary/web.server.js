@@ -7,6 +7,8 @@ const request = require('request');
 const path = require('path');
 const fs = require('fs');
 
+const hasUserSession = AppConfig.SESSION_UTILS.hasUserSession;
+
 async function setup(){
     const app = express();
     app.use(express.urlencoded({ extended: true }));
@@ -31,8 +33,11 @@ async function setup(){
     app.use(passport.initialize());
     app.use(passport.session());
 
-    app.use('/', express.static(AppConfig.WEB_TEMPLATE_DIR));
-
+    //app.use('/', express.static(AppConfig.WEB_TEMPLATE_DIR));
+    app.get('/', async (req, res) => {
+        const page = await AppConfig.POPULATE_FILE_LISTS.execute(req);
+        res.send(page);
+    });
     // Override passport profile function to get user profile from Twitch API
     OAuth2Strategy.prototype.userProfile = function(accessToken, done) {
     const options = {
@@ -81,12 +86,19 @@ async function setup(){
     app.get('/auth/twitch', passport.authenticate('twitch', { scope: 'user:read:subscriptions' }));
 
     // Set route for OAuth redirect
-    app.get('/auth/twitch/callback', passport.authenticate('twitch', { successRedirect: '/', failureRedirect: '/' }));
+    app.get('/auth/twitch/callback', passport.authenticate('twitch', { 
+        successReturnToOrRedirect: '/',
+        failureRedirect: '/' }));
 
     app.get('/broadcasters/:broadcaster', async (req, res) => {
-        const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster).id;
-        res.send(`no page for broadcaster: ${broadcaster_id} exists yet!`).status(204);
-        // TODO: make usecase to generate individual pages for all broadcasters who have files hosted
+        const broadcasters = AppConfig.FILE_UTILS.getAllDirectories(path.join(AppConfig.FILE_LOAD_DIR, 'vault'))
+        if(broadcasters.includes(req.params.broadcaster)){
+            //const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster).id;
+            const page = await AppConfig.POPULATE_FILE_LISTS.execute(req, req.params.broadcaster);
+            res.send(page);
+        }else{
+            res.send(`404: no page for ${req.params.broadcaster} exists`).status(404);
+        }
     })
 
     app.get('/vault/:broadcaster/*', async (req, res) => {
@@ -104,19 +116,11 @@ async function setup(){
                 res.send("file is available for subscribers only").status(204);
             }
         }else{
-            res.send("please log in with Twitch").status(204);
+            res.send("please <a href='/auth/twitch'>log in with Twitch!</a>").status(204);
         }
         // TODO: make these not redirect to new pages if not allowed
     });
-
-    //console.log(AppConfig.FILE_UTILS.getAllDirectories(path.join(AppConfig.FILE_LOAD_DIR, 'vault')));
-
     return app;
-}
-
-
-function hasUserSession(req){
-    return req.session && req.session.passport && req.session.passport.user;
 }
 
 module.exports = setup;

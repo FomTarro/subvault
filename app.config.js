@@ -28,6 +28,7 @@ const appConfig = {
     // utils
     get HTTP_UTILS(){ return require('./src/utils/http.utils'); },
     get FILE_UTILS(){ return require('./src/utils/file.utils'); },
+    get SESSION_UTILS(){ return require('./src/utils/session.utils'); },
 }
 
 module.exports.AppConfig = appConfig;
