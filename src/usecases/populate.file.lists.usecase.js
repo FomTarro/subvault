@@ -1,19 +1,25 @@
 const { JSDOM } = require('jsdom');
+const { AppConfig } = require('../../app.config');
 const fs = require('fs');
 const path = require('path');
-const { AppConfig } = require('../../app.config');
 
 async function execute(req, broadcaster){
+
     if(req.session){
         req.session.returnTo = req.path;
     }
+
+    // navbar
     const template = new JSDOM(fs.readFileSync(path.join(AppConfig.WEB_TEMPLATE_DIR, "index.html")));
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
         template.window.document.getElementById('log-in').innerHTML = `logged in as ${req.session.passport.user.data[0].login}`
     }
+
+    // populate list
     const list = template.window.document.getElementById('list');
     if(broadcaster){
         template.window.document.getElementById('list-title').innerHTML = broadcaster;
+        template.window.document.getElementsByTagName('title')[0].innerHTML = `${broadcaster}'s vault`;
         const fileList = [];
         const files = AppConfig.FILE_UTILS.walkSync(path.join(AppConfig.FILE_LOAD_DIR, 'vault', broadcaster), fileList);
         files.forEach((value) => {
@@ -38,7 +44,7 @@ async function execute(req, broadcaster){
             list.appendChild(item);
         });
     }
-    //fs.writeFileSync(path.join(AppConfig.WEB_LOAD_DIR, "index.html"), template.serialize());
+    
     return template.serialize();
 }
 

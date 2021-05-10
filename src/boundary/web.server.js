@@ -32,12 +32,20 @@ async function setup(){
 
     app.use(passport.initialize());
     app.use(passport.session());
+    app.router = { strict: true }
 
-    //app.use('/', express.static(AppConfig.WEB_TEMPLATE_DIR));
     app.get('/', async (req, res) => {
         const page = await AppConfig.POPULATE_FILE_LISTS.execute(req);
-        res.send(page);
+        res.status(200).send(page);
     });
+
+    app.get('/css*', (req, res) => {
+        res.sendFile(path.join(AppConfig.WEB_LOAD_DIR, req.path))
+    });
+    app.get('/js*', (req, res) => {
+        res.sendFile(path.join(AppConfig.WEB_LOAD_DIR, req.path))
+    });
+
     // Override passport profile function to get user profile from Twitch API
     OAuth2Strategy.prototype.userProfile = function(accessToken, done) {
     const options = {
