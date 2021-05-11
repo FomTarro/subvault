@@ -5,7 +5,7 @@ const passport = require('passport');
 const OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
 const request = require('request');
 const path = require('path');
-const fs = require('fs');
+const stream = require('stream');
 
 const hasUserSession = AppConfig.SESSION_UTILS.hasUserSession;
 
@@ -99,10 +99,11 @@ async function setup(){
         failureRedirect: '/' }));
 
     app.get('/broadcasters/:broadcaster', async (req, res) => {
-        const broadcasters = AppConfig.FILE_UTILS.getAllDirectories(path.join(AppConfig.FILE_LOAD_DIR, 'vault'))
+        const logger = new AppConfig.LOGGER.Logger();
+        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(broadcasters.includes(req.params.broadcaster)){
             //const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster).id;
-            const page = await AppConfig.POPULATE_FILE_LISTS.execute(req, req.params.broadcaster);
+            const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req, req.params.broadcaster);
             res.send(page);
         }else{
             res.send(`404: no page for ${req.params.broadcaster} exists`).status(404);
@@ -110,15 +111,21 @@ async function setup(){
     })
 
     app.get('/vault/:broadcaster/*', async (req, res) => {
+        const logger = new AppConfig.LOGGER.Logger();
         if(hasUserSession(req)){
             const user_id = req.session.passport.user.data[0].id;
-            const broadcaster_id = (await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster)).id;
-            if(user_id == broadcaster_id || (await AppConfig.USER_SUB_CLIENT.getUserSub(user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
-                const filePath = path.join(AppConfig.FILE_LOAD_DIR, req.path)
-                if(fs.existsSync(filePath)){
-                    res.download(filePath);
-                }else{
-                    res.send(`file: ${filePath} not found`).status(204);
+            const broadcaster_id = (await AppConfig.USER_ID_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
+            if(user_id == broadcaster_id || (await AppConfig.USER_SUB_CLIENT.getUserSub(logger, user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
+                const file = await AppConfig.S3_CLIENT.getFileByPath(logger, req.path.replace('/vault/', '')); 
+                if(file && file.ContentType && file.Body){ 
+                    const readStream = new stream.PassThrough();
+                    readStream.end(file.Body);
+                    res.set('Content-disposition', `attachment; filename=${path.basename(req.path)}`);
+                    res.set('Content-Type', file.ContentType);
+                    readStream.pipe(res);
+                }
+                else{
+                    res.sendStatus(404);
                 }
             }else{
                 res.send("file is available for subscribers only").status(204);

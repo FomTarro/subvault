@@ -3,7 +3,7 @@ const { AppConfig } = require('../../app.config');
 const fs = require('fs');
 const path = require('path');
 
-async function execute(req, broadcaster){
+async function execute(logger, req, broadcaster){
 
     if(req.session){
         req.session.returnTo = req.path;
@@ -20,21 +20,21 @@ async function execute(req, broadcaster){
     if(broadcaster){
         template.window.document.getElementById('list-title').innerHTML = broadcaster;
         template.window.document.getElementsByTagName('title')[0].innerHTML = `${broadcaster}'s vault`;
-        const fileList = [];
-        const files = AppConfig.FILE_UTILS.walkSync(path.join(AppConfig.FILE_LOAD_DIR, 'vault', broadcaster), fileList);
+        const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, broadcaster);
         files.forEach((value) => {
             const item = template.window.document.createElement('li');
             const anchor = template.window.document.createElement('a');
-            const rel = value.replace(AppConfig.FILE_LOAD_DIR, "");
-            anchor.href = rel;
-            anchor.innerHTML = rel.replace(path.join('vault', broadcaster), "");
+            const fileName = value.Key;
+            const relPath = `../vault/${fileName}`;
+            anchor.href = relPath
+            anchor.innerHTML = fileName;
             item.appendChild(anchor);
             list.appendChild(item);
         });
     }
     else{
         template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
-        const broadcasters = AppConfig.FILE_UTILS.getAllDirectories(path.join(AppConfig.FILE_LOAD_DIR, 'vault'));
+        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         broadcasters.forEach((value) => {
             const item = template.window.document.createElement('li');
             const anchor = template.window.document.createElement('a');

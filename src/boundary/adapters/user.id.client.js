@@ -2,9 +2,10 @@ const AppConfig = require('../../../app.config').AppConfig;
 
 const scope = 'no_scope'
 
-async function getUserInfo(username){
+async function getUserInfo(logger, username){
     var info = {};
     await AppConfig.HTTP_UTILS.request(
+        logger,
         {
             scope: scope,
             host: `api.twitch.tv`,
@@ -16,7 +17,6 @@ async function getUserInfo(username){
         },
         (error) => { 
         },
-        console
     );
     return info;
 }

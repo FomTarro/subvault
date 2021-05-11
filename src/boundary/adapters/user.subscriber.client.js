@@ -1,8 +1,9 @@
 const AppConfig = require('../../../app.config').AppConfig;
 
-async function getUserSub(userId, broadcasterId, token){
+async function getUserSub(logger, userId, broadcasterId, token){
     var isSub = false;
     await AppConfig.HTTP_UTILS.request(
+        logger,
         {
             token: token,
             host: `api.twitch.tv`,
@@ -16,7 +17,6 @@ async function getUserSub(userId, broadcasterId, token){
         (error) => { 
             isSub = false;
         },
-        console
     );
     return isSub;
 }

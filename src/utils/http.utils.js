@@ -3,12 +3,12 @@ const { AppConfig } = require('../../app.config');
 
 /**
  * Helper function for making web requests
+ * @param {*} logger The logger to print with
  * @param {*} options The request options: host, endpoint, method, and optionally scope and token
  * @param {*} resolve The callback to execute on success (accepts in a Buffer)
  * @param {*} reject The callback to execute on failure (accepts in an Exception)
- * @param {*} logger The logger to print with
  */
- async function webRequest(options, resolve, reject, logger){
+ async function webRequest(logger, options, resolve, reject){
     const formattedOptions = {
         hostname: options.host,
         port: 443,
@@ -26,8 +26,8 @@ const { AppConfig } = require('../../app.config');
     else if(options.scope){
         formattedOptions.headers = {
             'Authorization': 'Bearer ' + (options.scope == 'no_scope' ? 
-            await getTokenNoScope(AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET) : 
-            await getTokenScope(options.scope, AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET)),
+            await getTokenNoScope(logger, AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET) : 
+            await getTokenScope(logger, options.scope, AppConfig.TWITCH_CLIENT_ID, AppConfig.TWITCH_CLIENT_SECRET)),
             'Client-Id': AppConfig.TWITCH_CLIENT_ID,
         }
     }
@@ -55,7 +55,8 @@ async function request(options, buffers, log, resolve, reject){
                 log.log(`following redirect to ${proxyRes.headers.location}`);
                 // TODO: test this!
                 // parse url of location, switch path
-                request(options, buffers, log, resolve, reject);
+                //request(options, buffers, log, resolve, reject);
+                reject(proxyRes.statusCode);
             }else if(!(proxyRes.statusCode == 200 || proxyRes.statusCode == 206)){
                 reject(options);
             }else{
@@ -83,9 +84,10 @@ async function request(options, buffers, log, resolve, reject){
     }
 }
 
-async function getTokenScope(scope, clientId, clientSecret){
+async function getTokenScope(logger, scope, clientId, clientSecret){
     var token = undefined;
     await webRequest(
+        logger,
         {
             host: `id.twitch.tv`,
             endpoint: `/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials&scope=${scope}`,
@@ -99,14 +101,14 @@ async function getTokenScope(scope, clientId, clientSecret){
                 access_token: 'ERROR_TOKEN'
             };
         },
-        console
     );
     return token.access_token;
 }
 
-async function getTokenNoScope(clientId, clientSecret){
+async function getTokenNoScope(logger, clientId, clientSecret){
     var token = undefined;
     await webRequest(
+        logger,
         {
             host: `id.twitch.tv`,
             endpoint: `/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
@@ -120,7 +122,6 @@ async function getTokenNoScope(clientId, clientSecret){
                 access_token: 'ERROR_TOKEN'
             }
         },
-        console
     );
     return token.access_token;
 }
