@@ -7,20 +7,30 @@ const s3 = new AWS.S3({
 });
 
 async function uploadFile(logger, fileName, fileContent){
-
-    const s3Params = {
-        Bucket: AppConfig.S3_BUCKET_NAME,
-        Key: fileName, // File name you want to save as in S3
-        Body: fileContent
-    };
-    s3.upload(s3Params, function(err, data) {
-        if (err) {
-            reject(err);
+    return new Promise(function(resolve, reject){
+        const s3Params = {
+            Bucket: AppConfig.S3_BUCKET_NAME,
+            Key: fileName, // File name you want to save as in S3
+            Body: fileContent
+        };
+        s3.upload(s3Params, function(err, data) {
+            if (err) {
+                reject(err);
+            }
+            logger.log(`File uploaded successfully. ${data.Location}`);
+            resolve(data);
+        })
+    }).then(function(data){
+        return { status: 200 }
+    }).catch(function(err){
+        return {
+            status: 500,
+            message: err
         }
-        logger.log(`File uploaded successfully. ${data.Location}`);
-        resolve(data);
     });
 }
+
+
 
 async function getFileList(logger, prefix, resolve, reject){
     const s3params = {
@@ -52,8 +62,8 @@ async function getFileListForBroadcaster(logger, broadcaster){
     return new Promise(function(resolve, reject){
         getFileList(logger, `${broadcaster}/`, resolve, reject);
     }).then(function(data){
-        if(data.Contents && data.Contents.length > 0){
-            return data.Contents.slice(1);
+        if(data.Contents){
+            return data.Contents.filter(item => item.Size > 0);
         }else{
            return [];
         }
@@ -90,3 +100,4 @@ async function getFileByPath(logger, filePath){
 module.exports.getBroadcasterFolderList = getBroadcasterFolderList;
 module.exports.getFileListForBroadcaster = getFileListForBroadcaster;
 module.exports.getFileByPath = getFileByPath;
+module.exports.uploadFile = uploadFile;

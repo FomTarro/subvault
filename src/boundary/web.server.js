@@ -1,5 +1,6 @@
 const AppConfig = require('../../app.config').AppConfig;
 const express = require("express");
+const fileUpload = require('express-fileupload');
 const path = require('path');
 const stream = require('stream');
 
@@ -106,7 +107,7 @@ async function setupRoutes(app){
     app.router = { strict: true }
     app.get('/', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req);
+        const page = await AppConfig.POPULATE_FILE_LISTS.populateBroadcasterList(logger, req);
         res.status(200).send(page);
     });
 
@@ -121,13 +122,14 @@ async function setupRoutes(app){
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(broadcasters.includes(req.params.broadcaster)){
-            const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req, req.params.broadcaster);
+            const page = await AppConfig.POPULATE_FILE_LISTS.populateFileList(logger, req, req.params.broadcaster);
             res.send(page);
         }else{
             res.send(`404: no page for ${req.params.broadcaster} exists`).status(404);
         }
     })
 
+    // file download
     app.get('/vault/:broadcaster/*', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
@@ -154,6 +156,34 @@ async function setupRoutes(app){
         }
         // TODO: make these not redirect to new pages if not allowed
     });
+
+    app.get('/upload', async (req, res) => {
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
+        const page = await AppConfig.POPULATE_FILE_LISTS.populateUploadPage(logger, req);
+        res.send(page);
+    });
+
+    app.use(fileUpload());
+    app.post('/upload', async (req, res) => {    
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
+        if(AppConfig.SESSION_UTILS.hasUserSession(req)){
+            const uploaderName = req.session.passport.user.data[0].login;
+            if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName)){
+                // Binary data base64
+                const fileContent = Buffer.from(req.files.upload.data, 'binary');
+                const sanitizedFileName = req.files.upload.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
+                const filePath = `${uploaderName}/${sanitizedFileName}`; // AWS demands forward slashes
+                const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
+                logger.log(result);
+                res.sendStatus(result.status);
+            }else{
+                res.send("this account is not authorized to upload.").status(204);
+            }
+        }else{
+            res.send("please <a href='/auth/twitch'>log in with Twitch!</a>").status(204);
+        }
+    });
+
     return app;
 }
 

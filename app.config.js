@@ -11,6 +11,7 @@ const appConfig = {
 
     get TWITCH_CLIENT_ID(){ return process.env.twitch_client_id; },
     get TWITCH_CLIENT_SECRET(){ return process.env.twitch_client_secret; },
+    get TWITCH_ALLOWED_UPLOADERS(){ return process.env.twitch_uploader_logins.split(","); },
     get CALLBACK_URL() { return `${this.DOMAIN}/auth/twitch/callback`; },
 
     get S3_BUCKET_NAME(){ return process.env.s3_bucket_name; },

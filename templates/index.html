@@ -6,14 +6,35 @@
 </head>
     <body>
         <main>
-            <div>
-                [<span id='home'><a href='/'>home</a></span>] [<span id=login-status><a href='/auth/twitch'>log in with Twitch!</a></span>]
+            <div id='navbar'>
+                [<span id='navbar-home'><a href='/'>home</a></span>] 
+                [<span id='navbar-upload'><a href='/upload'>upload</a></span>] 
+                [<span id=navbar-login-status><a href='/auth/twitch'>log in with Twitch!</a></span>] 
             </div>
-            <h2 id='list-title'>Broadcasters</h2>
-            <div id='list-container'>
-                <ul id='list'>
+            <div id='main-container'>
+                <div id='list-container'>
+                    <h2 id='list-title'>Broadcasters</h2>
+                    <div id='list-content'>
+                        <ul id='list'>
 
-                </ul>
+                        </ul>
+                    </div>
+                </div>
+                <div id='upload-container'>  
+                    <div id='upload-warning'>
+                        <h2 id='upload-warning-title'>Permission Denied</h2>
+                        <div id='upload-warning-reason'></div>
+                    </div>          
+                    <div id='upload-content'>
+                        <label for="upload"><h2 id='upload-title'>Upload a File</h2></label>
+                        <form method="POST" action="/upload" enctype="multipart/form-data">
+                            <div class="field">
+                                <input type="file" name="upload" id="upload">
+                            </div>
+                            <input type="submit" class="btn" value="Upload!">
+                        </form>
+                    </div>
+                </div>
             </div>
         </main>
     </body>
