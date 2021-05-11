@@ -22,8 +22,7 @@ const appConfig = {
     get FILE_LOAD_DIR(){ return path.join(__dirname); },
 
     // clients
-    get USER_SUB_CLIENT(){ return require('./src/boundary/adapters/user.subscriber.client')},
-    get USER_ID_CLIENT(){ return require('./src/boundary/adapters/user.id.client')},
+    get TWITCH_CLIENT(){ return require('./src/boundary/adapters/twitch.api.client')},
     get S3_CLIENT(){ return require('./src/boundary/adapters/s3.storage.client')},
 
     // use cases

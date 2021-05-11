@@ -5,7 +5,7 @@ const path = require('path');
 
 async function execute(logger, req, broadcaster){
 
-    if(req.session){
+    if(req && req.session){
         req.session.returnTo = req.path;
     }
 

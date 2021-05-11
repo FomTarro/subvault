@@ -35,7 +35,8 @@ async function setup(){
     app.router = { strict: true }
 
     app.get('/', async (req, res) => {
-        const page = await AppConfig.POPULATE_FILE_LISTS.execute(req);
+        const logger = new AppConfig.LOGGER.Logger();
+        const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req);
         res.status(200).send(page);
     });
 
@@ -102,7 +103,7 @@ async function setup(){
         const logger = new AppConfig.LOGGER.Logger();
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(broadcasters.includes(req.params.broadcaster)){
-            //const broadcaster_id = await AppConfig.USER_ID_CLIENT.getUserInfo(req.params.broadcaster).id;
+            //const broadcaster_id = await AppConfig.TWITCH_CLIENT.getUserInfo(req.params.broadcaster).id;
             const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req, req.params.broadcaster);
             res.send(page);
         }else{
@@ -114,8 +115,8 @@ async function setup(){
         const logger = new AppConfig.LOGGER.Logger();
         if(hasUserSession(req)){
             const user_id = req.session.passport.user.data[0].id;
-            const broadcaster_id = (await AppConfig.USER_ID_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
-            if(user_id == broadcaster_id || (await AppConfig.USER_SUB_CLIENT.getUserSub(logger, user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
+            const broadcaster_id = (await AppConfig.TWITCH_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
+            if(user_id == broadcaster_id || (await AppConfig.TWITCH_CLIENT.getUserSub(logger, user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
                 const file = await AppConfig.S3_CLIENT.getFileByPath(logger, req.path.replace('/vault/', '')); 
                 if(file && file.ContentType && file.Body){ 
                     const readStream = new stream.PassThrough();
