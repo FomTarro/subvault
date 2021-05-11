@@ -12,7 +12,7 @@ async function execute(logger, req, broadcaster){
     // navbar
     const template = new JSDOM(fs.readFileSync(path.join(AppConfig.WEB_TEMPLATE_DIR, "index.html")));
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
-        template.window.document.getElementById('log-in').innerHTML = `logged in as ${req.session.passport.user.data[0].login}`
+        template.window.document.getElementById('login-status').innerHTML = `logged in as ${req.session.passport.user.data[0].login}`
     }
 
     // populate list
@@ -38,7 +38,7 @@ async function execute(logger, req, broadcaster){
         broadcasters.forEach((value) => {
             const item = template.window.document.createElement('li');
             const anchor = template.window.document.createElement('a');
-            anchor.href= `/broadcasters/${value}`;
+            anchor.href = `/broadcasters/${value}`;
             anchor.innerHTML = value;
             item.appendChild(anchor);
             list.appendChild(item);

@@ -1,3 +1,7 @@
+html {
+  font-family: monospace;
+}
+
 .broadcaster-icon {
   height: 300px;
   width: 300px;
