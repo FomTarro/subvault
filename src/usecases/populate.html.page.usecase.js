@@ -19,7 +19,7 @@ async function execute(logger, req, options){
     }
 
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
-        template.window.document.getElementById('navbar-login-status').innerHTML = `logged in as ${req.session.passport.user.data[0].login}`
+        template.window.document.getElementById('navbar-login-status').innerHTML = `logged in as <b>${req.session.passport.user.data[0].login}</b>`
     }
 
     if(pageCodes.BROADCASTER == options.code){
@@ -61,12 +61,13 @@ async function execute(logger, req, options){
         });
     }else if(pageCodes.UPLOAD == options.code){
         template.window.document.getElementById('list-container').remove();
+        template.window.document.getElementsByTagName('title')[0].innerHTML = 'vault upload'
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
             const uploaderName = req.session.passport.user.data[0].login
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName) == false){
                 template.window.document.getElementById('upload-content').remove();
                 template.window.document.getElementById('upload-warning-reason').innerHTML = 
-                `You are logged in as ${uploaderName}, who does not have permission to upload at this time.`
+                `You are logged in as <b>${uploaderName}</b>, who does not have permission to upload at this time.`
             }else{
                 template.window.document.getElementById('upload-warning').remove();
             }

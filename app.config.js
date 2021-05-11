@@ -26,7 +26,7 @@ const appConfig = {
     get S3_CLIENT(){ return require('./src/boundary/adapters/s3.storage.client')},
 
     // use cases
-    get POPULATE_FILE_LISTS(){ return (require('./src/usecases/populate.file.lists.usecase'))},
+    get POPULATE_HTML_PAGE(){ return (require('./src/usecases/populate.html.page.usecase'))},
 
     // models
     get WEB_SERVER() { return require('./src/boundary/web.server'); },

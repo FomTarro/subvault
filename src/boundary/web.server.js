@@ -107,7 +107,7 @@ async function setupRoutes(app){
     app.router = { strict: true }
     app.get('/', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_FILE_LISTS.populateBroadcasterList(logger, req);
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateBroadcasterList(logger, req);
         res.status(200).send(page);
     });
 
@@ -122,7 +122,7 @@ async function setupRoutes(app){
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(broadcasters.includes(req.params.broadcaster)){
-            const page = await AppConfig.POPULATE_FILE_LISTS.populateFileList(logger, req, req.params.broadcaster);
+            const page = await AppConfig.POPULATE_HTML_PAGE.populateFileList(logger, req, req.params.broadcaster);
             res.send(page);
         }else{
             res.send(`404: no page for ${req.params.broadcaster} exists`).status(404);
@@ -159,7 +159,7 @@ async function setupRoutes(app){
 
     app.get('/upload', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_FILE_LISTS.populateUploadPage(logger, req);
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateUploadPage(logger, req);
         res.send(page);
     });
 
