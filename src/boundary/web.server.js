@@ -1,21 +1,24 @@
 const AppConfig = require('../../app.config').AppConfig;
 const express = require("express");
-const session = require('express-session');
-const passport = require('passport');
-const OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
-const request = require('request');
 const path = require('path');
 const stream = require('stream');
-
-const hasUserSession = AppConfig.SESSION_UTILS.hasUserSession;
 
 async function setup(){
     const app = express();
     app.use(express.urlencoded({ extended: true }));
     app.set('trust proxy', 1);
+    // --- PASSPORT AUTH ---
+    await setupPassport(app);
+    // --- PAGES ---
+    await setupRoutes(app);
+    
+    return app;
+}
 
+async function setupSessions(app){
+    const session = require('express-session');
     const store = new session.MemoryStore();
-
+    
     app.use(session({
             name: "session",
             store: store,
@@ -29,23 +32,19 @@ async function setup(){
         resave: true,
         saveUninitialized: true
     }));
+}
 
+async function setupPassport(app){
+    const passport = require('passport');
+    const OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
+    const request = require('request');
+
+    await setupSessions(app);
     app.use(passport.initialize());
     app.use(passport.session());
     app.router = { strict: true }
 
-    app.get('/', async (req, res) => {
-        const logger = new AppConfig.LOGGER.Logger();
-        const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req);
-        res.status(200).send(page);
-    });
-
-    app.get('/css*', (req, res) => {
-        res.sendFile(path.join(AppConfig.WEB_LOAD_DIR, req.path))
-    });
-    app.get('/js*', (req, res) => {
-        res.sendFile(path.join(AppConfig.WEB_LOAD_DIR, req.path))
-    });
+    // --- PASSPORT AUTH ---
 
     // Override passport profile function to get user profile from Twitch API
     OAuth2Strategy.prototype.userProfile = function(accessToken, done) {
@@ -97,13 +96,31 @@ async function setup(){
     // Set route for OAuth redirect
     app.get('/auth/twitch/callback', passport.authenticate('twitch', { 
         successReturnToOrRedirect: '/',
-        failureRedirect: '/' }));
+        failureRedirect: '/' 
+    }));
+
+    return app;
+}
+
+async function setupRoutes(app){
+    app.router = { strict: true }
+    app.get('/', async (req, res) => {
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
+        const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req);
+        res.status(200).send(page);
+    });
+
+    app.get('/css*', (req, res) => {
+        res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
+    });
+    app.get('/js*', (req, res) => {
+        res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
+    });
 
     app.get('/broadcasters/:broadcaster', async (req, res) => {
-        const logger = new AppConfig.LOGGER.Logger();
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(broadcasters.includes(req.params.broadcaster)){
-            //const broadcaster_id = await AppConfig.TWITCH_CLIENT.getUserInfo(req.params.broadcaster).id;
             const page = await AppConfig.POPULATE_FILE_LISTS.execute(logger, req, req.params.broadcaster);
             res.send(page);
         }else{
@@ -112,11 +129,12 @@ async function setup(){
     })
 
     app.get('/vault/:broadcaster/*', async (req, res) => {
-        const logger = new AppConfig.LOGGER.Logger();
-        if(hasUserSession(req)){
-            const user_id = req.session.passport.user.data[0].id;
-            const broadcaster_id = (await AppConfig.TWITCH_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
-            if(user_id == broadcaster_id || (await AppConfig.TWITCH_CLIENT.getUserSub(logger, user_id, broadcaster_id, req.session.passport.user.accessToken)) == true){
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
+        if(AppConfig.SESSION_UTILS.hasUserSession(req)){
+            const userId = req.session.passport.user.data[0].id;
+            const broadcasterId = (await AppConfig.TWITCH_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
+            const accessToken = req.session.passport.user.accessToken;
+            if(userId == broadcasterId || (await AppConfig.TWITCH_CLIENT.getUserSub(logger, userId, broadcasterId, accessToken)) == true){
                 const file = await AppConfig.S3_CLIENT.getFileByPath(logger, req.path.replace('/vault/', '')); 
                 if(file && file.ContentType && file.Body){ 
                     const readStream = new stream.PassThrough();
@@ -129,7 +147,7 @@ async function setup(){
                     res.sendStatus(404);
                 }
             }else{
-                res.send("file is available for subscribers only").status(204);
+                res.send("file is available for subscribers only!").status(204);
             }
         }else{
             res.send("please <a href='/auth/twitch'>log in with Twitch!</a>").status(204);

@@ -76,7 +76,7 @@ async function getFile(logger, filePath, resolve, reject){
 }
 
 async function getFileByPath(logger, filePath){
-    logger.log(`GET" ${filePath}`);
+    logger.log(`GET ${filePath}`);
     return new Promise(function(resolve, reject){
         getFile(logger, filePath, resolve, reject);
     }).then(function(data){

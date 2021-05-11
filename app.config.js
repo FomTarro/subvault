@@ -17,9 +17,8 @@ const appConfig = {
     get S3_ID() { return process.env.s3_id; },
     get S3_SECRET(){ return process.env.s3_secret; },
 
-    get WEB_LOAD_DIR(){ return path.join(__dirname, 'public'); },
+    get WEB_PUBLIC_DIR(){ return path.join(__dirname, 'public'); },
     get WEB_TEMPLATE_DIR(){ return path.join(__dirname, 'templates'); },
-    get FILE_LOAD_DIR(){ return path.join(__dirname); },
 
     // clients
     get TWITCH_CLIENT(){ return require('./src/boundary/adapters/twitch.api.client')},
