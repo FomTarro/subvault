@@ -12,19 +12,19 @@
                 [<span id=navbar-login-status><a href='/auth/twitch'>log in with Twitch!</a></span>] 
             </div>
             <div id='main-container'>
+                <div id='error-container'>
+                    <h2 id='error-title'>404</h2>
+                    <div id='error-reason'></div>
+                </div>
                 <div id='list-container'>
                     <h2 id='list-title'>Broadcasters</h2>
                     <div id='list-content'>
                         <ul id='list'>
-
+                            <!-- List content goes here -->
                         </ul>
                     </div>
                 </div>
-                <div id='upload-container'>  
-                    <div id='upload-warning'>
-                        <h2 id='upload-warning-title'>Permission Denied</h2>
-                        <div id='upload-warning-reason'></div>
-                    </div>          
+                <div id='upload-container'>    
                     <div id='upload-content'>
                         <label for="upload"><h2 id='upload-title'>Upload a File</h2></label>
                         <form method="POST" action="/upload" enctype="multipart/form-data">

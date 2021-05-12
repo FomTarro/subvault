@@ -7,6 +7,7 @@ const pageCodes = {
     get HOME(){return 'HOME'},
     get BROADCASTER(){return 'BROADCASTER'},
     get UPLOAD(){return 'UPLOAD'},
+    get ERROR(){return 'ERROR'},
 }
 
 async function execute(logger, req, options){
@@ -25,7 +26,9 @@ async function execute(logger, req, options){
     if(pageCodes.BROADCASTER == options.code){
         const list = template.window.document.getElementById('list');
         template.window.document.getElementById('upload-container').remove();
-        if(options.broadcaster){
+        template.window.document.getElementById('error-container').remove();
+        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
+        if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
             template.window.document.getElementById('list-title').innerHTML = options.broadcaster;
             template.window.document.getElementsByTagName('title')[0].innerHTML = `${options.broadcaster}'s vault`;
@@ -41,14 +44,16 @@ async function execute(logger, req, options){
                 list.appendChild(item);
             });
         }else{
-            template.window.document.getElementById('list-title').innerHTML = '???';
-            template.window.document.getElementsByTagName('title')[0].innerHTML = `???'s vault`;
+            return await populateErrorPage(logger, req, 
+                '404', 
+                `No page for ${req.params.broadcaster} exists.`);
         }
     }
     else if(pageCodes.HOME == options.code){
         // populate list
         const list = template.window.document.getElementById('list');
         template.window.document.getElementById('upload-container').remove();
+        template.window.document.getElementById('error-container').remove();
         template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         broadcasters.forEach((value) => {
@@ -65,17 +70,22 @@ async function execute(logger, req, options){
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
             const uploaderName = req.session.passport.user.data[0].login
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName) == false){
-                template.window.document.getElementById('upload-content').remove();
-                template.window.document.getElementById('upload-warning-reason').innerHTML = 
-                `You are logged in as <b>${uploaderName}</b>, who does not have permission to upload at this time.`
+                return await populateErrorPage(logger, req, 
+                    'Permission Denied',
+                    `You are logged in as <b>${uploaderName}</b>, who does not have permission to upload at this time.`);
             }else{
-                template.window.document.getElementById('upload-warning').remove();
+                template.window.document.getElementById('error-container').remove();
             }
         }else{
-            template.window.document.getElementById('upload-content').remove();
-            template.window.document.getElementById('upload-warning-reason').innerHTML = 
-            `Please log in with an authorized Twitch account in order to upload!`
+            return await populateErrorPage(logger, req, 
+                'Permission Denied',
+                `Please log in with an authorized Twitch account in order to upload!`);
         }
+    }else if(pageCodes.ERROR == options.code){
+        template.window.document.getElementById('list-container').remove();
+        template.window.document.getElementById('upload-container').remove();
+        template.window.document.getElementById('error-title').innerHTML = options.title
+        template.window.document.getElementById('error-reason').innerHTML = options.message
     }
     
     return template.serialize();
@@ -101,6 +111,16 @@ async function populateUploadPage(logger, req){
     })
 }
 
+async function populateErrorPage(logger, req, errorTitle, errorMessage){
+    logger.error(`ERROR ${req.path}`);
+    return await execute(logger, req, {
+        code: pageCodes.ERROR,
+        title: errorTitle,
+        message: errorMessage,
+    })
+}
+
 module.exports.populateFileList = populateFileList;
 module.exports.populateBroadcasterList = populateBroadcasterList;
 module.exports.populateUploadPage = populateUploadPage;
+module.exports.populateErrorPage = populateErrorPage;

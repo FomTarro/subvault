@@ -120,13 +120,8 @@ async function setupRoutes(app){
 
     app.get('/broadcasters/:broadcaster', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
-        if(broadcasters.includes(req.params.broadcaster)){
-            const page = await AppConfig.POPULATE_HTML_PAGE.populateFileList(logger, req, req.params.broadcaster);
-            res.send(page);
-        }else{
-            res.send(`404: no page for ${req.params.broadcaster} exists`).status(404);
-        }
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateFileList(logger, req, req.params.broadcaster);
+        res.status(200).send(page);
     })
 
     // file download
@@ -146,21 +141,29 @@ async function setupRoutes(app){
                     readStream.pipe(res);
                 }
                 else{
-                    res.sendStatus(404);
+                    const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                        '404', 
+                        'The file you are requesting cannot be found.')
+                    res.status(404).send(page);
                 }
             }else{
-                res.send("file is available for subscribers only!").status(204);
+                const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                    'Permission Denied', 
+                    `Files belonging to ${req.params.broadcaster} are available only to their subscribers!`)
+                res.status(204).send(page);
             }
         }else{
-            res.send("please <a href='/auth/twitch'>log in with Twitch!</a>").status(204);
+            const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                'Permission Denied', 
+                "Please <a href='/auth/twitch'>log in with Twitch!</a>")
+            res.status(204).send(page);
         }
-        // TODO: make these not redirect to new pages if not allowed
     });
 
     app.get('/upload', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const page = await AppConfig.POPULATE_HTML_PAGE.populateUploadPage(logger, req);
-        res.send(page);
+        res.status(200).send(page);
     });
 
     app.use(fileUpload());
@@ -175,13 +178,29 @@ async function setupRoutes(app){
                 const filePath = `${uploaderName}/${sanitizedFileName}`; // AWS demands forward slashes
                 const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
                 logger.log(result);
-                res.sendStatus(result.status);
+                res.redirect(`/broadcasters/${uploaderName}`);
             }else{
-                res.send("this account is not authorized to upload.").status(204);
+                const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                    'Permission Denied', 
+                    "This account is not authorized to upload.")
+                res.status(204).send(page);
             }
         }else{
-            res.send("please <a href='/auth/twitch'>log in with Twitch!</a>").status(204);
+            const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                'Permission Denied', 
+                "Please <a href='/auth/twitch'>log in with Twitch!</a>")
+            res.status(204).send(page);
         }
+    });
+
+    app.get('*', async (req, res) => {
+        // log so we have a record of what URL folks are trying to hit
+        const logger = new AppConfig.LOGGER.Logger({url: req.path});
+        logger.error("page not found");
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+            '404', 
+            'The page you are requesting cannot be found')
+        res.status(404).send(page)
     });
 
     return app;
