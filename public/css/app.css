@@ -1,5 +1,9 @@
 html {
-  font-family: monospace;
+  font-family: monospace !important;
+}
+
+main {
+  margin: 1em;
 }
 
 .broadcaster-icon {

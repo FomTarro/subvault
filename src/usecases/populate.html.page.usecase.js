@@ -23,7 +23,23 @@ async function execute(logger, req, options){
         template.window.document.getElementById('navbar-login-status').innerHTML = `logged in as <b>${req.session.passport.user.data[0].login}</b>`
     }
 
-    if(pageCodes.BROADCASTER == options.code){
+    if(pageCodes.HOME == options.code){
+        // populate list
+        const list = template.window.document.getElementById('list');
+        template.window.document.getElementById('upload-container').remove();
+        template.window.document.getElementById('error-container').remove();
+        template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
+        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
+        broadcasters.forEach((value) => {
+            const item = template.window.document.createElement('li');
+            const anchor = template.window.document.createElement('a');
+            anchor.href = `/broadcasters/${value}`;
+            anchor.innerHTML = value;
+            item.appendChild(anchor);
+            list.appendChild(item);
+        });
+    }
+    else if(pageCodes.BROADCASTER == options.code){
         const list = template.window.document.getElementById('list');
         template.window.document.getElementById('upload-container').remove();
         template.window.document.getElementById('error-container').remove();
@@ -44,27 +60,13 @@ async function execute(logger, req, options){
                 list.appendChild(item);
             });
         }else{
+            req.status = 404;
             return await populateErrorPage(logger, req, 
                 '404', 
                 `No page for ${req.params.broadcaster} exists.`);
         }
     }
-    else if(pageCodes.HOME == options.code){
-        // populate list
-        const list = template.window.document.getElementById('list');
-        template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('error-container').remove();
-        template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
-        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
-        broadcasters.forEach((value) => {
-            const item = template.window.document.createElement('li');
-            const anchor = template.window.document.createElement('a');
-            anchor.href = `/broadcasters/${value}`;
-            anchor.innerHTML = value;
-            item.appendChild(anchor);
-            list.appendChild(item);
-        });
-    }else if(pageCodes.UPLOAD == options.code){
+    else if(pageCodes.UPLOAD == options.code){
         template.window.document.getElementById('list-container').remove();
         template.window.document.getElementsByTagName('title')[0].innerHTML = 'vault upload'
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){

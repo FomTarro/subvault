@@ -149,7 +149,7 @@ async function setupRoutes(app){
             }else{
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
-                    `Files belonging to ${req.params.broadcaster} are available only to their subscribers!`)
+                    `Files belonging to ${req.params.broadcaster} are available only to their subscribers.`)
                 res.status(204).send(page);
             }
         }else{
@@ -173,9 +173,11 @@ async function setupRoutes(app){
             const uploaderName = req.session.passport.user.data[0].login;
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName)){
                 // Binary data base64
+                // NOTE *.upload.* is the name of the html form tag
+                // if that changes, this code also needs to change
                 const fileContent = Buffer.from(req.files.upload.data, 'binary');
-                const sanitizedFileName = req.files.upload.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-                const filePath = `${uploaderName}/${sanitizedFileName}`; // AWS demands forward slashes
+                const sanitizedFileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
+                const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, sanitizedFileName); // AWS demands forward slashes!
                 const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
                 logger.log(result);
                 res.redirect(`/broadcasters/${uploaderName}`);
@@ -183,23 +185,24 @@ async function setupRoutes(app){
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
                     "This account is not authorized to upload.")
-                res.status(204).send(page);
+                res.status(403).send(page);
             }
         }else{
             const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                 'Permission Denied', 
                 "Please <a href='/auth/twitch'>log in with Twitch!</a>")
-            res.status(204).send(page);
+            res.status(403).send(page);
         }
     });
 
+    // custom 404
     app.get('*', async (req, res) => {
         // log so we have a record of what URL folks are trying to hit
         const logger = new AppConfig.LOGGER.Logger({url: req.path});
         logger.error("page not found");
         const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
             '404', 
-            'The page you are requesting cannot be found')
+            'The page you are requesting cannot be found.')
         res.status(404).send(page)
     });
 

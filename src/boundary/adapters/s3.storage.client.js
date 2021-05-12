@@ -6,6 +6,10 @@ const s3 = new AWS.S3({
     secretAccessKey: AppConfig.S3_SECRET,
 });
 
+function joinPathForS3(...strings){
+    return strings.join('/');
+}
+
 async function uploadFile(logger, fileName, fileContent){
     return new Promise(function(resolve, reject){
         const s3Params = {
@@ -29,8 +33,6 @@ async function uploadFile(logger, fileName, fileContent){
         }
     });
 }
-
-
 
 async function getFileList(logger, prefix, resolve, reject){
     const s3params = {
@@ -101,3 +103,4 @@ module.exports.getBroadcasterFolderList = getBroadcasterFolderList;
 module.exports.getFileListForBroadcaster = getFileListForBroadcaster;
 module.exports.getFileByPath = getFileByPath;
 module.exports.uploadFile = uploadFile;
+module.exports.joinPathForS3 = joinPathForS3;
