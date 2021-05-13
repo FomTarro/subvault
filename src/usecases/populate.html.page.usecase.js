@@ -72,7 +72,10 @@ async function execute(logger, req, options){
     }
     else if(pageCodes.UPLOAD == options.code){
         template.window.document.getElementById('list-container').remove();
-        template.window.document.getElementsByTagName('title')[0].innerHTML = 'vault upload'
+        const title = 'Vault Upload'
+        template.window.document.getElementsByTagName('title')[0].innerHTML = title;
+        template.window.document.getElementById('meta-title').content = title;
+        template.window.document.getElementById('meta-desc').content = 'Upload files to share exclusively with your Twitch subscribers!';
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
             const uploaderName = req.session.passport.user.data[0].login
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName) == false){
