@@ -206,6 +206,8 @@ async function setupRoutes(app){
         res.status(404).send(page)
     });
 
+    console.log(await AppConfig.TWITCH_CLIENT.getUserInfo(console, 'fomtarro'));
+
     return app;
 }
 

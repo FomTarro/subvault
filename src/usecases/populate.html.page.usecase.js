@@ -46,8 +46,13 @@ async function execute(logger, req, options){
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
+            const imgUrl = (await AppConfig.TWITCH_CLIENT.getUserInfo(console, options.broadcaster)).profile_image_url;
+            const title = `${options.broadcaster}'s vault`;
             template.window.document.getElementById('list-title').innerHTML = options.broadcaster;
-            template.window.document.getElementsByTagName('title')[0].innerHTML = `${options.broadcaster}'s vault`;
+            template.window.document.getElementsByTagName('title')[0].innerHTML = title;
+            template.window.document.getElementById('meta-img').content = imgUrl;
+            template.window.document.getElementById('meta-title').content = title;
+            template.window.document.getElementById('meta-desc').content = `Check out the files that ${options.broadcaster} has shared with their Twitch subscribers!`;
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
             files.forEach((value) => {
                 const item = template.window.document.createElement('li');
@@ -60,7 +65,6 @@ async function execute(logger, req, options){
                 list.appendChild(item);
             });
         }else{
-            req.status = 404;
             return await populateErrorPage(logger, req, 
                 '404', 
                 `No page for ${req.params.broadcaster} exists.`);
@@ -105,7 +109,6 @@ async function populateBroadcasterList(logger, req){
         code: pageCodes.HOME,
     })
 }
-
 
 async function populateUploadPage(logger, req){
     return await execute(logger, req, {

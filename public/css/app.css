@@ -6,6 +6,10 @@ main {
   margin: 1em;
 }
 
+.footer {
+  margin-top: 2em;
+}
+
 .broadcaster-icon {
   height: 300px;
   width: 300px;
