@@ -150,13 +150,13 @@ async function setupRoutes(app){
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
                     `Files belonging to ${req.params.broadcaster} are available only to their subscribers.`)
-                res.status(204).send(page);
+                res.status(200).send(page);
             }
         }else{
             const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                 'Permission Denied', 
                 "Please <a href='/auth/twitch'>log in with Twitch!</a>")
-            res.status(204).send(page);
+            res.status(200).send(page);
         }
     });
 
@@ -205,8 +205,6 @@ async function setupRoutes(app){
             'The page you are requesting cannot be found.')
         res.status(404).send(page)
     });
-
-    console.log(await AppConfig.TWITCH_CLIENT.getUserInfo(console, 'fomtarro'));
 
     return app;
 }
