@@ -1,6 +1,6 @@
 {
   "name": "subvault",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "reward hosting for twitch subs",
   "main": "server.js",
   "scripts": {
@@ -8,8 +8,8 @@
     "test-leaks": "jest --runInBand --detectOpenHandles",
     "start": "npm run web-server",
     "web-server": "node server.js",
-    "build-css": "sass sass:public/css",
-    "build-css-watch": "sass --watch sass:public/css",
+    "build-css": "sass --no-source-map sass:public/css",
+    "build-css-watch": "sass --no-source-map --watch sass:public/css",
     "check-push": "npm run test",
     "pull-modules": "git submodule update --recursive --remote"
   },
@@ -17,7 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/FomTarro/subvault.git"
   },
-  "author": "Tom '@FomTarro' Farro",
+  "author": "Tom 'Skeletom' Farro",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/FomTarro/subvault/issues"
@@ -39,8 +39,7 @@
     "jsdom": "16.4.0",
     "passport": "^0.3.2",
     "passport-oauth": "^1.0.0",
-    "request": "^2.81.0",
-    "ws": "^7.3.0"
+    "request": "^2.81.0"
   },
   "husky": {
     "hooks": {

@@ -28,7 +28,6 @@ async function execute(logger, req, options){
         // populate list
         const list = template.window.document.getElementById('list');
         template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('error-container').remove();
         template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         broadcasters.forEach((value) => {
@@ -43,7 +42,6 @@ async function execute(logger, req, options){
     else if(pageCodes.BROADCASTER == options.code){
         const list = template.window.document.getElementById('list');
         template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('error-container').remove();
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
@@ -111,11 +109,11 @@ async function execute(logger, req, options){
                 `Please log in with an authorized Twitch account in order to upload!`);
         }
     }else if(pageCodes.ERROR == options.code){
-        template.window.document.getElementById('alert-container').remove();
         template.window.document.getElementById('list-container').remove();
         template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('error-title').innerHTML = options.title
-        template.window.document.getElementById('error-reason').innerHTML = options.message
+        template.window.document.getElementById('alert-title').innerHTML = options.title;
+        template.window.document.getElementById('alert-desc').innerHTML = options.message;
+        template.window.document.getElementById('alert-img').remove();
     }
     
     return template.serialize();
