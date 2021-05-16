@@ -6,13 +6,44 @@ main {
   margin: 1em;
 }
 
+#main-container {
+  margin-top: 1em;
+}
+
 .footer {
   margin-top: 2em;
 }
 
-.broadcaster-icon {
-  height: 300px;
-  width: 300px;
+.alert-icon {
+  height: 135px;
+  width: 135px;
+  border: solid 1px;
+  border-radius: 5px;
+  float: left;
+  margin-right: 1em;
+}
+
+#alert-container {
+  display: flex;
+  margin-bottom: 1em;
+}
+
+#alert-title {
+  margin: 0;
+}
+
+#alert-desc {
+  max-width: calc(400px + 135px);
+  margin-top: 1em;
+}
+
+.channel-link {
+  font-size: 10pt;
+  font-weight: normal;
+}
+
+h2 {
+  margin-top: 0;
 }
 
 /*# sourceMappingURL=app.css.map */

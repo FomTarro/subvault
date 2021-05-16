@@ -20,7 +20,8 @@ async function execute(logger, req, options){
     }
 
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
-        template.window.document.getElementById('navbar-login-status').innerHTML = `logged in as <b>${req.session.passport.user.data[0].login}</b>`
+        template.window.document.getElementById('navbar-login-status').innerHTML = 
+        `logged in as <b>${req.session.passport.user.data[0].login}</b> (<a href='/logout'>log out</a>)`
     }
 
     if(pageCodes.HOME == options.code){
@@ -46,9 +47,25 @@ async function execute(logger, req, options){
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
-            const imgUrl = (await AppConfig.TWITCH_CLIENT.getUserInfo(console, options.broadcaster)).profile_image_url;
+            const broadcasterInfo = await AppConfig.TWITCH_CLIENT.getUserInfo(console, options.broadcaster);
+            const imgUrl = broadcasterInfo.profile_image_url;
             const title = `${options.broadcaster}'s vault`;
-            template.window.document.getElementById('list-title').innerHTML = options.broadcaster;
+            template.window.document.getElementById('list-title').innerHTML = 'Files';
+
+            template.window.document.getElementById('alert-img').src = imgUrl;
+            template.window.document.getElementById('alert-title').innerHTML = broadcasterInfo.display_name;
+            const channel = template.window.document.createElement('a');
+            channel.href = `https://www.twitch.tv/${options.broadcaster}`;
+            channel.target = '#'
+            channel.innerHTML = 'channel';
+            const span = template.window.document.createElement('span');
+            span.classList.add('channel-link');
+            span.appendChild(channel);
+            span.innerHTML = ` [${span.innerHTML}]`
+            template.window.document.getElementById('alert-title').appendChild(span);
+            template.window.document.getElementById('alert-desc').innerHTML = broadcasterInfo.description;
+
+            // meta
             template.window.document.getElementsByTagName('title')[0].innerHTML = title;
             template.window.document.getElementById('meta-img').content = imgUrl;
             template.window.document.getElementById('meta-title').content = title;
@@ -71,6 +88,7 @@ async function execute(logger, req, options){
         }
     }
     else if(pageCodes.UPLOAD == options.code){
+        template.window.document.getElementById('alert-container').remove();
         template.window.document.getElementById('list-container').remove();
         const title = 'Vault Upload'
         template.window.document.getElementsByTagName('title')[0].innerHTML = title;
@@ -80,7 +98,10 @@ async function execute(logger, req, options){
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName) == false){
                 return await populateErrorPage(logger, req, 
                     'Permission Denied',
-                    `You are logged in as <b>${uploaderName}</b>, who does not have permission to upload at this time.`);
+                    `You are logged in as <b>${uploaderName}</b>, who does not have permission to upload at this time. <br><br>
+                    The site is currently in closed beta, 
+                    but if you're interested in getting upload permission, 
+                    please Tweet at or DM the webmaster (<a target='#' href='https://twitter.com/FomTarro'>@FomTarro</a>).`);
             }else{
                 template.window.document.getElementById('error-container').remove();
             }
@@ -90,6 +111,7 @@ async function execute(logger, req, options){
                 `Please log in with an authorized Twitch account in order to upload!`);
         }
     }else if(pageCodes.ERROR == options.code){
+        template.window.document.getElementById('alert-container').remove();
         template.window.document.getElementById('list-container').remove();
         template.window.document.getElementById('upload-container').remove();
         template.window.document.getElementById('error-title').innerHTML = options.title

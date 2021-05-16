@@ -1,18 +1,50 @@
-$icon-width: 300px;
+$icon-width: 135px;
+$base-margin: 1em;
 
 html{
     font-family: monospace !important;
 }
 
 main{
-    margin: 1em;
+    margin: $base-margin;
+}
+
+#main-container{
+    margin-top: $base-margin;
 }
 
 .footer{
     margin-top: 2em;
 }
 
-.broadcaster-icon{
+.alert-icon{
     height: $icon-width;
     width: $icon-width;
+    border: solid 1px;
+    border-radius: 5px;
+    float: left;
+    margin-right: $base-margin;
+}
+
+#alert-container{
+    display: flex;
+    margin-bottom: $base-margin;
+}
+
+#alert-title{
+    margin: 0;
+}
+
+#alert-desc{
+    max-width: calc(400px +  #{$icon-width});
+    margin-top: 1em;
+}
+
+.channel-link{
+    font-size: 10pt;
+    font-weight: normal;
+}
+
+h2{
+    margin-top: 0;
 }

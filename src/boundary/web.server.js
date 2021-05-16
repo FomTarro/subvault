@@ -100,6 +100,13 @@ async function setupPassport(app){
         failureRedirect: '/' 
     }));
 
+    app.get('/logout', function (req, res){
+        const redirect = req.session && req.session.returnTo ? req.session.returnTo : '/'
+        req.session.destroy(function (err) {
+          res.redirect(redirect); //Inside a callback… bulletproof!
+        });
+      });
+
     return app;
 }
 
@@ -115,6 +122,9 @@ async function setupRoutes(app){
         res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
     });
     app.get('/js*', (req, res) => {
+        res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
+    });
+    app.get('/img*', (req, res) => {
         res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
     });
 
