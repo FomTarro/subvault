@@ -21,7 +21,7 @@ async function execute(logger, req, options){
 
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
         template.window.document.getElementById('navbar-login-status').innerHTML = 
-        `logged in as <b>${req.session.passport.user.data[0].login}</b> (<a href='/logout'>log out</a>)`
+        `logged in as <b>${req.session.passport.user.data[0].login}</b> (<a href='/auth/twitch/logout'>log out</a>)`
     }
 
     if(pageCodes.HOME == options.code){
@@ -100,8 +100,6 @@ async function execute(logger, req, options){
                     The site is currently in closed beta, 
                     but if you're interested in getting upload permission, 
                     please Tweet at or DM the webmaster (<a target='#' href='https://twitter.com/FomTarro'>@FomTarro</a>).`);
-            }else{
-                template.window.document.getElementById('error-container').remove();
             }
         }else{
             return await populateErrorPage(logger, req, 

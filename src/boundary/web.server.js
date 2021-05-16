@@ -100,12 +100,12 @@ async function setupPassport(app){
         failureRedirect: '/' 
     }));
 
-    app.get('/logout', function (req, res){
+    app.get('/auth/twitch/logout', (req, res) => {
         const redirect = req.session && req.session.returnTo ? req.session.returnTo : '/'
-        req.session.destroy(function (err) {
-          res.redirect(redirect); //Inside a callback… bulletproof!
+        req.session.destroy(function(err) {
+            res.redirect(redirect);
         });
-      });
+    });
 
     return app;
 }
