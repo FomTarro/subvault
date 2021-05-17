@@ -49,23 +49,23 @@ async function setupPassport(app){
 
     // Override passport profile function to get user profile from Twitch API
     OAuth2Strategy.prototype.userProfile = function(accessToken, done) {
-    const options = {
-        url: 'https://api.twitch.tv/helix/users',
-        method: 'GET',
-        headers: {
-        'Client-ID': AppConfig.TWITCH_CLIENT_ID,
-        'Accept': 'application/vnd.twitchtv.v5+json',
-        'Authorization': 'Bearer ' + accessToken
-        }
-    };
+        const options = {
+            url: 'https://api.twitch.tv/helix/users',
+            method: 'GET',
+            headers: {
+            'Client-ID': AppConfig.TWITCH_CLIENT_ID,
+            'Accept': 'application/vnd.twitchtv.v5+json',
+            'Authorization': 'Bearer ' + accessToken
+            }
+        };
 
-    request(options, function (error, response, body) {
-        if (response && response.statusCode == 200) {
-            done(null, JSON.parse(body));
-        } else {
-            done(JSON.parse(body));
-        }
-    });
+        request(options, function (error, response, body) {
+            if (response && response.statusCode == 200) {
+                done(null, JSON.parse(body));
+            } else {
+                done(JSON.parse(body));
+            }
+        });
     }
 
     passport.serializeUser(function(user, done) {
@@ -77,18 +77,18 @@ async function setupPassport(app){
     });
 
     passport.use('twitch', new OAuth2Strategy({
-        authorizationURL: 'https://id.twitch.tv/oauth2/authorize',
-        tokenURL: 'https://id.twitch.tv/oauth2/token',
-        clientID: AppConfig.TWITCH_CLIENT_ID,
-        clientSecret: AppConfig.TWITCH_CLIENT_SECRET,
-        callbackURL: AppConfig.CALLBACK_URL,
-        state: true,
-    },
-    function(accessToken, refreshToken, profile, done) {
-        profile.accessToken = accessToken;
-        profile.refreshToken = refreshToken;
-        done(null, profile);
-    }
+            authorizationURL: 'https://id.twitch.tv/oauth2/authorize',
+            tokenURL: 'https://id.twitch.tv/oauth2/token',
+            clientID: AppConfig.TWITCH_CLIENT_ID,
+            clientSecret: AppConfig.TWITCH_CLIENT_SECRET,
+            callbackURL: AppConfig.CALLBACK_URL,
+            state: true,
+        },
+        function(accessToken, refreshToken, profile, done) {
+            profile.accessToken = accessToken;
+            profile.refreshToken = refreshToken;
+            done(null, profile);
+        }
     ));
 
     // Set route to start OAuth link, this is where you define scopes to request
@@ -112,19 +112,14 @@ async function setupPassport(app){
 
 async function setupRoutes(app){
     app.router = { strict: true }
+    // home
     app.get('/', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const page = await AppConfig.POPULATE_HTML_PAGE.populateBroadcasterList(logger, req);
         res.status(200).send(page);
     });
 
-    app.get('/css*', (req, res) => {
-        res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
-    });
-    app.get('/js*', (req, res) => {
-        res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
-    });
-    app.get('/img*', (req, res) => {
+    app.get(['/css*','/js*','/img*'], (req, res) => {
         res.sendFile(path.join(AppConfig.WEB_PUBLIC_DIR, req.path))
     });
 
@@ -141,35 +136,36 @@ async function setupRoutes(app){
             const userId = req.session.passport.user.data[0].id;
             const broadcasterId = (await AppConfig.TWITCH_CLIENT.getUserInfo(logger, req.params.broadcaster)).id;
             const accessToken = req.session.passport.user.accessToken;
-            if(userId == broadcasterId || (await AppConfig.TWITCH_CLIENT.getUserSub(logger, userId, broadcasterId, accessToken)) == true){
+            if(userId == broadcasterId || (await AppConfig.TWITCH_CLIENT.getUserIsSub(logger, userId, broadcasterId, accessToken)) == true){
                 const file = await AppConfig.S3_CLIENT.getFileByPath(logger, req.path.replace('/vault/', '')); 
                 if(file && file.ContentType && file.Body){ 
-                    const readStream = new stream.PassThrough();
-                    readStream.end(file.Body);
                     res.set('Content-disposition', `attachment; filename=${path.basename(req.path)}`);
                     res.set('Content-Type', file.ContentType);
+                    const readStream = new stream.PassThrough();
+                    readStream.end(file.Body);
                     readStream.pipe(res);
                 }
                 else{
                     const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                         '404', 
-                        'The file you are requesting cannot be found.')
+                        'The file you are requesting cannot be found.');
                     res.status(404).send(page);
                 }
             }else{
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
-                    `Files belonging to ${req.params.broadcaster} are available only to their subscribers.`)
+                    `Files belonging to ${req.params.broadcaster} are available only to their subscribers.`);
                 res.status(200).send(page);
             }
         }else{
             const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                 'Permission Denied', 
-                "Please <a href='/auth/twitch'>log in with Twitch!</a>")
+                "Please <a href='/auth/twitch'>log in with Twitch!</a>");
             res.status(200).send(page);
         }
     });
 
+    // file upload
     app.get('/upload', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
         const page = await AppConfig.POPULATE_HTML_PAGE.populateUploadPage(logger, req);
@@ -182,25 +178,40 @@ async function setupRoutes(app){
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
             const uploaderName = req.session.passport.user.data[0].login;
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName)){
-                // Binary data base64
-                // NOTE *.upload.* is the name of the html form tag
-                // if that changes, this code also needs to change
-                const fileContent = Buffer.from(req.files.upload.data, 'binary');
-                const sanitizedFileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
-                const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, sanitizedFileName); // AWS demands forward slashes!
-                const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
-                logger.log(result);
-                res.redirect(`/broadcasters/${uploaderName}`);
+                if(req.files && req.files.upload){
+                    // Binary data base64
+                    // NOTE *.upload.* is the name of the html form tag
+                    // if that changes, this code also needs to change
+                    const fileContent = Buffer.from(req.files.upload.data, 'binary');
+                    const fileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
+                    const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, fileName); // AWS demands forward slashes!
+                    const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
+                    logger.log(result);
+                    if(200 == result.status){
+                        res.redirect(`/broadcasters/${uploaderName}`);
+                    }else{
+                        const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                        'Upload Failed', 
+                        `An error occured while uploading your file: 
+                        [<i>${result ? result.message : 'No error message provided by the file server :('}</i>]`);
+                        res.status(500).send(page);
+                    }
+                }else{ 
+                    const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                    'No File Selected', 
+                    "No file was selected to upload.");
+                    res.status(400).send(page);
+                }
             }else{
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
-                    "This account is not authorized to upload.")
+                    "This account is not authorized to upload.");
                 res.status(403).send(page);
             }
         }else{
             const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                 'Permission Denied', 
-                "Please <a href='/auth/twitch'>log in with Twitch!</a>")
+                "Please <a href='/auth/twitch'>log in with Twitch!</a>");
             res.status(403).send(page);
         }
     });
@@ -212,7 +223,7 @@ async function setupRoutes(app){
         logger.error("page not found");
         const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
             '404', 
-            'The page you are requesting cannot be found.')
+            'The page you are requesting cannot be found.');
         res.status(404).send(page)
     });
 

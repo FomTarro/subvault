@@ -13,26 +13,26 @@ const pageCodes = {
 async function execute(logger, req, options){
 
     const template = new JSDOM(fs.readFileSync(path.join(AppConfig.WEB_TEMPLATE_DIR, 'index.html')));
-
+    const doc = template.window.document;
     // navbar
     if(req && req.session){
         req.session.returnTo = req.path;
     }
 
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
-        template.window.document.getElementById('navbar-login-status').innerHTML = 
+        doc.getElementById('navbar-login-status').innerHTML = 
         `logged in as <b>${req.session.passport.user.data[0].login}</b> (<a href='/auth/twitch/logout'>log out</a>)`
     }
 
     if(pageCodes.HOME == options.code){
         // populate list
-        const list = template.window.document.getElementById('list');
-        template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('list-title').innerHTML = 'Broadcasters';
+        const list = doc.getElementById('list');
+        doc.getElementById('upload-container').remove();
+        doc.getElementById('list-title').innerHTML = 'Broadcasters';
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         broadcasters.forEach((value) => {
-            const item = template.window.document.createElement('li');
-            const anchor = template.window.document.createElement('a');
+            const item = doc.createElement('li');
+            const anchor = doc.createElement('a');
             anchor.href = `/broadcasters/${value}`;
             anchor.innerHTML = value;
             item.appendChild(anchor);
@@ -40,38 +40,39 @@ async function execute(logger, req, options){
         });
     }
     else if(pageCodes.BROADCASTER == options.code){
-        const list = template.window.document.getElementById('list');
-        template.window.document.getElementById('upload-container').remove();
+        const list = doc.getElementById('list');
+        doc.getElementById('upload-container').remove();
         const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
         if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
-            const broadcasterInfo = await AppConfig.TWITCH_CLIENT.getUserInfo(console, options.broadcaster);
+            const broadcasterInfo = await AppConfig.TWITCH_CLIENT.getUserInfo(logger, options.broadcaster);
             const imgUrl = broadcasterInfo.profile_image_url;
             const title = `${options.broadcaster}'s vault`;
-            template.window.document.getElementById('list-title').innerHTML = 'Files';
+            doc.getElementById('list-title').innerHTML = 'Files';
 
-            template.window.document.getElementById('alert-img').src = imgUrl;
-            template.window.document.getElementById('alert-title').innerHTML = broadcasterInfo.display_name;
-            const channel = template.window.document.createElement('a');
+            doc.getElementById('alert-img').src = imgUrl;
+            doc.getElementById('alert-title').innerHTML = broadcasterInfo.display_name;
+            const channel = doc.createElement('a');
             channel.href = `https://www.twitch.tv/${options.broadcaster}`;
             channel.target = '#'
             channel.innerHTML = 'channel';
-            const span = template.window.document.createElement('span');
+            const span = doc.createElement('span');
             span.classList.add('channel-link');
             span.appendChild(channel);
             span.innerHTML = ` [${span.innerHTML}]`
-            template.window.document.getElementById('alert-title').appendChild(span);
-            template.window.document.getElementById('alert-desc').innerHTML = broadcasterInfo.description;
+            doc.getElementById('alert-title').appendChild(span);
+            doc.getElementById('alert-desc').innerHTML = broadcasterInfo.description;
 
             // meta
-            template.window.document.getElementsByTagName('title')[0].innerHTML = title;
-            template.window.document.getElementById('meta-img').content = imgUrl;
-            template.window.document.getElementById('meta-title').content = title;
-            template.window.document.getElementById('meta-desc').content = `Check out the files that ${options.broadcaster} has shared with their Twitch subscribers!`;
+            doc.getElementsByTagName('title')[0].innerHTML = title;
+            doc.getElementById('meta-img').content = imgUrl;
+            doc.getElementById('meta-title').content = title;
+            doc.getElementById('meta-desc').content = 
+            `Check out the files that ${options.broadcaster} has shared with their Twitch subscribers!`;
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
             files.forEach((value) => {
-                const item = template.window.document.createElement('li');
-                const anchor = template.window.document.createElement('a');
+                const item = doc.createElement('li');
+                const anchor = doc.createElement('a');
                 const fileName = value.Key;
                 const relPath = `../vault/${fileName}`;
                 anchor.href = relPath
@@ -86,11 +87,11 @@ async function execute(logger, req, options){
         }
     }
     else if(pageCodes.UPLOAD == options.code){
-        template.window.document.getElementById('alert-container').remove();
-        template.window.document.getElementById('list-container').remove();
+        doc.getElementById('alert-container').remove();
+        doc.getElementById('list-container').remove();
         const title = 'Vault Upload'
-        template.window.document.getElementsByTagName('title')[0].innerHTML = title;
-        template.window.document.getElementById('meta-title').content = title;
+        doc.getElementsByTagName('title')[0].innerHTML = title;
+        doc.getElementById('meta-title').content = title;
         if(AppConfig.SESSION_UTILS.hasUserSession(req)){
             const uploaderName = req.session.passport.user.data[0].login
             if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(uploaderName) == false){
@@ -107,11 +108,11 @@ async function execute(logger, req, options){
                 `Please log in with an authorized Twitch account in order to upload!`);
         }
     }else if(pageCodes.ERROR == options.code){
-        template.window.document.getElementById('list-container').remove();
-        template.window.document.getElementById('upload-container').remove();
-        template.window.document.getElementById('alert-title').innerHTML = options.title;
-        template.window.document.getElementById('alert-desc').innerHTML = options.message;
-        template.window.document.getElementById('alert-img').remove();
+        doc.getElementById('list-container').remove();
+        doc.getElementById('upload-container').remove();
+        doc.getElementById('alert-title').innerHTML = options.title;
+        doc.getElementById('alert-desc').innerHTML = options.message;
+        doc.getElementById('alert-img').remove();
     }
     
     return template.serialize();
@@ -137,7 +138,7 @@ async function populateUploadPage(logger, req){
 }
 
 async function populateErrorPage(logger, req, errorTitle, errorMessage){
-    logger.error(`ERROR ${req.path}`);
+    logger.error(`ERROR PAGE ${req.path}`);
     return await execute(logger, req, {
         code: pageCodes.ERROR,
         title: errorTitle,

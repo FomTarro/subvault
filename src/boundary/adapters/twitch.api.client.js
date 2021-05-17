@@ -13,15 +13,18 @@ async function getUserInfo(logger, username){
             method: 'GET'
         },
         (buffer) => { 
+            // TODO: map results to a domain data structure 
+            // to insulate other code from API changes
             info = JSON.parse(buffer).data[0];
         },
         (error) => { 
+            logger.error(error);
         },
     );
     return info;
 }
 
-async function getUserSub(logger, userId, broadcasterId, token){
+async function getUserIsSub(logger, userId, broadcasterId, token){
     var isSub = false;
     await AppConfig.HTTP_UTILS.request(
         logger,
@@ -32,10 +35,11 @@ async function getUserSub(logger, userId, broadcasterId, token){
             method: 'GET'
         },
         (buffer) => { 
-            // console.log(buffer.toString());
+            // logger.log(buffer.toString());
             isSub = true;
         },
         (error) => { 
+            logger.error(error);
             isSub = false;
         },
     );
@@ -43,4 +47,4 @@ async function getUserSub(logger, userId, broadcasterId, token){
 }
 
 module.exports.getUserInfo = getUserInfo;
-module.exports.getUserSub = getUserSub;
+module.exports.getUserIsSub = getUserIsSub;
