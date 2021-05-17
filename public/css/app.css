@@ -4,6 +4,15 @@ html {
 
 main {
   margin: 1em;
+  font-size: 10pt;
+}
+
+li {
+  word-wrap: break-word;
+}
+
+h2 {
+  margin-top: 0;
 }
 
 #main-container {
@@ -11,7 +20,7 @@ main {
 }
 
 .footer {
-  margin-top: 2em;
+  margin-top: calc(2* 1em);
 }
 
 .alert-icon {
@@ -40,8 +49,4 @@ main {
 .channel-link {
   font-size: 10pt;
   font-weight: normal;
-}
-
-h2 {
-  margin-top: 0;
 }

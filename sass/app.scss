@@ -1,5 +1,6 @@
 $icon-width: 135px;
 $base-margin: 1em;
+$base-font-size: 10pt;
 
 html{
     font-family: monospace !important;
@@ -7,6 +8,15 @@ html{
 
 main{
     margin: $base-margin;
+    font-size: $base-font-size;
+}
+
+li{
+    word-wrap: break-word;
+}
+
+h2{
+    margin-top: 0;
 }
 
 #main-container{
@@ -14,7 +24,7 @@ main{
 }
 
 .footer{
-    margin-top: 2em;
+    margin-top: calc(2* #{$base-margin});
 }
 
 .alert-icon{
@@ -37,14 +47,10 @@ main{
 
 #alert-desc{
     max-width: calc(400px +  #{$icon-width});
-    margin-top: 1em;
+    margin-top: $base-margin;
 }
 
 .channel-link{
-    font-size: 10pt;
+    font-size: $base-font-size;
     font-weight: normal;
-}
-
-h2{
-    margin-top: 0;
 }

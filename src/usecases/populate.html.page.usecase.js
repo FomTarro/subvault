@@ -47,7 +47,7 @@ async function execute(logger, req, options){
             // populate list
             const broadcasterInfo = await AppConfig.TWITCH_CLIENT.getUserInfo(logger, options.broadcaster);
             const imgUrl = broadcasterInfo.profile_image_url;
-            const title = `${options.broadcaster}'s vault`;
+            const title = `${broadcasterInfo.display_name}'s vault`;
             doc.getElementById('list-title').innerHTML = 'Files';
 
             doc.getElementById('alert-img').src = imgUrl;
@@ -68,7 +68,7 @@ async function execute(logger, req, options){
             doc.getElementById('meta-img').content = imgUrl;
             doc.getElementById('meta-title').content = title;
             doc.getElementById('meta-desc').content = 
-            `Check out the files that ${options.broadcaster} has shared with their Twitch subscribers!`;
+            `Check out the files that ${broadcasterInfo.display_name} has shared with their Twitch subscribers!`;
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
             files.forEach((value) => {
                 const item = doc.createElement('li');
@@ -77,7 +77,11 @@ async function execute(logger, req, options){
                 const relPath = `../vault/${fileName}`;
                 anchor.href = relPath
                 anchor.innerHTML = fileName;
+                const span = doc.createElement('span');
+                const fileSize = AppConfig.FILE_UTILS.bytesToFileSizeString(value.Size);
+                span.innerHTML = ` (${fileSize})`;
                 item.appendChild(anchor);
+                item.appendChild(span);
                 list.appendChild(item);
             });
         }else{
