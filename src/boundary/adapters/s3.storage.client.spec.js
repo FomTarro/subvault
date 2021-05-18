@@ -8,6 +8,13 @@ describe("Tests S3 Storage client", () => {
         expect(filePath).toBe('bonbombs/nested/file.txt');
     });
 
+    test("Properly identifies file owner", async() => {
+        var owner = AppConfig.S3_CLIENT.getFileOwner('fomtarro/file.txt')
+        expect(owner).toBe('fomtarro');
+        owner = AppConfig.S3_CLIENT.getFileOwner('fomtarro/nested/file.txt');
+        expect(owner).toBe('fomtarro');
+    });
+
     test("gets Broadcaster folders", async() => {
         const logger = new AppConfig.LOGGER.Logger({});
         var broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger)
@@ -16,7 +23,7 @@ describe("Tests S3 Storage client", () => {
 
     test("gets known test file", async() => {
         const logger = new AppConfig.LOGGER.Logger({});
-        var file = await AppConfig.S3_CLIENT.getFileByPath(logger, 'fomtarro/gingam.png');
+        var file = await AppConfig.S3_CLIENT.getFileByPath(logger, 'fomtarro/blush.png');
         expect(file.ContentLength).toBeGreaterThanOrEqual(1);
     });
 

@@ -6,7 +6,7 @@ const path = require('path');
 const pageCodes = {
     get HOME(){return 'HOME'},
     get BROADCASTER(){return 'BROADCASTER'},
-    get UPLOAD(){return 'UPLOAD'},
+    get MANAGE(){return 'MANAGE'},
     get ERROR(){return 'ERROR'},
 }
 
@@ -21,7 +21,8 @@ async function execute(logger, req, options){
 
     if(AppConfig.SESSION_UTILS.hasUserSession(req)){
         doc.getElementById('navbar-login-status').innerHTML = 
-        `logged in as <b>${req.session.passport.user.data[0].login}</b> (<a href='/auth/twitch/logout'>log out</a>)`
+        `<a href='/broadcasters/${req.session.passport.user.data[0].login}'>${req.session.passport.user.data[0].login}</a> 
+        (<a href='/auth/twitch/logout'>log out</a>)`
     }
 
     if(pageCodes.HOME == options.code){
@@ -90,8 +91,7 @@ async function execute(logger, req, options){
                 `No page for ${req.params.broadcaster} exists.`);
         }
     }
-    else if(pageCodes.UPLOAD == options.code){
-        doc.getElementById('alert-container').remove();
+    else if(pageCodes.MANAGE == options.code){
         doc.getElementById('list-container').remove();
         const title = 'Vault Upload'
         doc.getElementsByTagName('title')[0].innerHTML = title;
@@ -106,6 +106,34 @@ async function execute(logger, req, options){
                     but if you're interested in getting upload permission, 
                     please Tweet at or DM the webmaster (<a target='#' href='https://twitter.com/FomTarro'>@FomTarro</a>).`);
             }
+            doc.getElementById('alert-img').remove();
+            doc.getElementById('alert-title').innerHTML = 'Manage your Files';
+            doc.getElementById('alert-desc').innerHTML = 
+            `From this rudimentary dashboard, you can upload new files to the vault, 
+            or delete existing files. Please keep in mind that deletion is <b>permanent</b>, 
+            and the webmaster will <b>not</b> be able to restore deleted files.<br><br>
+            You can access your public page <a href='../broadcasters/${uploaderName}'>here</a>, 
+            or by clicking your name in the top navigation bar.`;
+
+            // populate deletion list
+            const list = doc.getElementById('delete-list');
+            const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, uploaderName);
+            files.forEach((value) => {
+                const item = doc.createElement('li');
+                const checkbox = doc.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'file';
+                checkbox.value = value.Key;
+                item.appendChild(checkbox);
+                // TODO: this could be made into a helper function
+                const anchor = doc.createElement('a');
+                const fileName = value.Key;
+                const relPath = `../vault/${fileName}`;
+                anchor.href = relPath
+                anchor.innerHTML = fileName;
+                item.appendChild(anchor);
+                list.appendChild(item);
+            });
         }else{
             return await populateErrorPage(logger, req, 
                 'Permission Denied',
@@ -135,9 +163,9 @@ async function populateBroadcasterList(logger, req){
     })
 }
 
-async function populateUploadPage(logger, req){
+async function populateManagePage(logger, req){
     return await execute(logger, req, {
-        code: pageCodes.UPLOAD,
+        code: pageCodes.MANAGE,
     })
 }
 
@@ -152,5 +180,5 @@ async function populateErrorPage(logger, req, errorTitle, errorMessage){
 
 module.exports.populateFileList = populateFileList;
 module.exports.populateBroadcasterList = populateBroadcasterList;
-module.exports.populateUploadPage = populateUploadPage;
+module.exports.populateManagePage = populateManagePage;
 module.exports.populateErrorPage = populateErrorPage;

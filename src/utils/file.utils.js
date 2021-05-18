@@ -5,16 +5,17 @@ function makeFileNameSafe(string){
 function bytesToFileSizeString(bytes){
     var size = bytes;
     var unit = 'b';
-    if(bytes < 1000){ // bytes
-
-    }else if(bytes >=1000 && bytes < 1000000){ // kilobytes
-        size = (size / 1000).toFixed(2);
+    const interval = 1000;
+    if(bytes < interval){ // bytes
+        // do nothing!
+    }else if(bytes >= interval && bytes < interval * interval){ // kilobytes
+        size = (size / (interval)).toFixed(2);
         unit = 'kb';
-    }else if(bytes >= 1000000 && bytes < 1000000000){ // megabytes
-        size = (size / 1000000).toFixed(2);
+    }else if(bytes >= interval * interval && bytes < interval * interval * interval){ // megabytes
+        size = (size / (interval * interval)).toFixed(2);
         unit = 'mb';
     }else{ // gigabytes and beyond
-        size = (size / 1000000000).toFixed(2);
+        size = (size / (interval * interval * interval)).toFixed(2);
         unit = 'gb';
     }
     return `${size}${unit}`;

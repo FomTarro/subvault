@@ -10,6 +10,10 @@ function joinPathForS3(...strings){
     return strings.join('/');
 }
 
+function getFileOwner(filePath){
+    return filePath ? filePath.split('/')[0] : '???';
+}
+
 async function uploadFile(logger, fileName, fileContent){
     return new Promise(function(resolve, reject){
         const s3Params = {
@@ -25,7 +29,9 @@ async function uploadFile(logger, fileName, fileContent){
             resolve(data);
         })
     }).then(function(data){
-        return { status: 200 }
+        return { 
+            status: 200 
+        }
     }).catch(function(err){
         return {
             status: 500,
@@ -99,8 +105,38 @@ async function getFileByPath(logger, filePath){
     });
 }
 
+async function deleteFiles(logger, filePathList){
+    return new Promise(function(resolve, reject){
+        var s3Params = {
+            Bucket: AppConfig.S3_BUCKET_NAME, 
+            Delete: {
+                Objects: filePathList.map(x => { return { Key: x }; }),
+            }
+        };
+        s3.deleteObjects(s3Params, (err, data) => {
+            if (err){
+                reject(err);
+            } 
+            resolve(data);
+        });
+    }).then(function(data){
+        logger.log(JSON.stringify(data));
+        return {
+            status: 200
+        };
+    }).catch(function(err){
+        logger.error(err);
+        return {
+            status: 500,
+            message: err
+        };
+    });
+}
+
 module.exports.getBroadcasterFolderList = getBroadcasterFolderList;
 module.exports.getFileListForBroadcaster = getFileListForBroadcaster;
 module.exports.getFileByPath = getFileByPath;
 module.exports.uploadFile = uploadFile;
+module.exports.deleteFiles = deleteFiles;
 module.exports.joinPathForS3 = joinPathForS3;
+module.exports.getFileOwner = getFileOwner;

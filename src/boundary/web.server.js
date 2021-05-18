@@ -166,9 +166,9 @@ async function setupRoutes(app){
     });
 
     // file upload
-    app.get('/upload', async (req, res) => {
+    app.get('/manage', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_HTML_PAGE.populateUploadPage(logger, req);
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateManagePage(logger, req);
         res.status(200).send(page);
     });
 
@@ -186,9 +186,8 @@ async function setupRoutes(app){
                     const fileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
                     const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, fileName); // AWS demands forward slashes!
                     const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
-                    logger.log(result);
                     if(200 == result.status){
-                        res.redirect(`/broadcasters/${uploaderName}`);
+                        res.redirect(`/manage`);
                     }else{
                         const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                         'Upload Failed', 
@@ -206,6 +205,45 @@ async function setupRoutes(app){
                 const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
                     'Permission Denied', 
                     "This account is not authorized to upload.");
+                res.status(403).send(page);
+            }
+        }else{
+            const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                'Permission Denied', 
+                "Please <a href='/auth/twitch'>log in with Twitch!</a>");
+            res.status(403).send(page);
+        }
+    });
+
+    app.post('/delete', async (req, res) => {
+        const logger = new AppConfig.LOGGER.Logger({path: req.path});
+        if(AppConfig.SESSION_UTILS.hasUserSession(req)){
+            const deleterName = req.session.passport.user.data[0].login;
+            if(AppConfig.TWITCH_ALLOWED_UPLOADERS.includes(deleterName)){
+                if(req.body && req.body.file){
+                    const files = Array.isArray(req.body.file) ? req.body.file : [req.body.file];
+                    const allowedFiles = files.filter(file => AppConfig.S3_CLIENT.getFileOwner(file) === deleterName);
+                    logger.log(`DELETING: ${allowedFiles}`);
+                    const result = await AppConfig.S3_CLIENT.deleteFiles(logger, allowedFiles);
+                    if(200 == result.status){
+                        res.redirect(`/manage`);
+                    }else{
+                        const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                        'Delete Failed', 
+                        `An error occured while deleting your file${allowedFiles.length > 1 ? 's' : ''}: 
+                        [<i>${result ? result.message : 'No error message provided by the file server :('}</i>]`);
+                        res.status(500).send(page);
+                    }
+                }else{
+                    const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                        'No Files Selected', 
+                        "No files were selected to delete.");
+                        res.status(400).send(page);
+                }
+            }else{
+                const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                    'Permission Denied', 
+                    "This account is not authorized to delete.");
                 res.status(403).send(page);
             }
         }else{

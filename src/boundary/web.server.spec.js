@@ -8,7 +8,7 @@ describe("App Context Launches", () => {
     });
 
     test("Respond 200 when GET on upload", async() => {
-        const response = await request(await AppConfig.WEB_SERVER()).get("/upload");
+        const response = await request(await AppConfig.WEB_SERVER()).get("/manage");
         expect(response.statusCode).toBe(200);
     });
 
@@ -27,8 +27,13 @@ describe("App Context Launches", () => {
         expect(response.statusCode).toBe(404);
     });
 
-    test("Respond 403 Denied when GET on Upload with no dession", async() => {
+    test("Respond 403 Denied when POST on Upload with no session", async() => {
         const response = await request(await AppConfig.WEB_SERVER()).post("/upload");
+        expect(response.statusCode).toBe(403);
+    });
+
+    test("Respond 403 Denied when POST on DELETE with no session", async() => {
+        const response = await request(await AppConfig.WEB_SERVER()).post("/delete");
         expect(response.statusCode).toBe(403);
     });
 })

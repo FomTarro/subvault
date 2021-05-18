@@ -19,6 +19,18 @@ h2 {
   margin-top: 1em;
 }
 
+.management-content {
+  margin-bottom: 1em;
+}
+
+#upload-field {
+  width: 100%;
+}
+
+#upload {
+  width: 100%;
+}
+
 .footer {
   margin-top: calc(2* 1em);
 }
