@@ -47,12 +47,12 @@ async function execute(logger, req, options){
         if(options.broadcaster && broadcasters.includes(options.broadcaster)){
             // populate list
             const broadcasterInfo = await AppConfig.TWITCH_CLIENT.getUserInfo(logger, options.broadcaster);
-            const imgUrl = broadcasterInfo.profile_image_url;
-            const title = `${broadcasterInfo.display_name}'s vault`;
+            const imgUrl = broadcasterInfo.profileImage;
+            const title = `${broadcasterInfo.displayName}'s vault`;
             doc.getElementById('list-title').innerHTML = 'Files';
 
             doc.getElementById('alert-img').src = imgUrl;
-            doc.getElementById('alert-title').innerHTML = broadcasterInfo.display_name;
+            doc.getElementById('alert-title').innerHTML = broadcasterInfo.displayName;
             const channel = doc.createElement('a');
             channel.href = `https://www.twitch.tv/${options.broadcaster}`;
             channel.target = '#'
@@ -71,18 +71,10 @@ async function execute(logger, req, options){
             doc.getElementById('meta-desc').content = 
             `Check out the files that ${broadcasterInfo.display_name} has shared with their Twitch subscribers!`;
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
-            files.forEach((value) => {
+            files.paths.forEach((value) => {
                 const item = doc.createElement('li');
-                const anchor = doc.createElement('a');
-                const fileName = value.Key;
-                const relPath = `../vault/${fileName}`;
-                anchor.href = relPath
-                anchor.innerHTML = fileName;
-                const span = doc.createElement('span');
-                const fileSize = AppConfig.FILE_UTILS.bytesToFileSizeString(value.Size);
-                span.innerHTML = ` (${fileSize})`;
-                item.appendChild(anchor);
-                item.appendChild(span);
+                const span = makeFileListEntry(doc, value);
+                item.append(span);
                 list.appendChild(item);
             });
         }else{
@@ -118,20 +110,18 @@ async function execute(logger, req, options){
             // populate deletion list
             const list = doc.getElementById('delete-list');
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, uploaderName);
-            files.forEach((value) => {
+            const storage = await AppConfig.S3_CLIENT.getUsedStorageForBroadcaster(uploaderName);
+            doc.getElementById('upload-space-remaining').innerHTML = 
+            `[${AppConfig.FILE_UTILS.bytesToFileSizeString(AppConfig.PARTITION_PER_USER_BYTES - storage.used)} remaining]`
+            files.paths.forEach((value) => {
                 const item = doc.createElement('li');
                 const checkbox = doc.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.name = 'file';
                 checkbox.value = value.Key;
                 item.appendChild(checkbox);
-                // TODO: this could be made into a helper function
-                const anchor = doc.createElement('a');
-                const fileName = value.Key;
-                const relPath = `../vault/${fileName}`;
-                anchor.href = relPath
-                anchor.innerHTML = fileName;
-                item.appendChild(anchor);
+                const span = makeFileListEntry(doc, value);
+                item.append(span);
                 list.appendChild(item);
             });
         }else{
@@ -148,6 +138,21 @@ async function execute(logger, req, options){
     }
     
     return template.serialize();
+}
+
+function makeFileListEntry(doc, value){
+    const item = doc.createElement('span');
+    const anchor = doc.createElement('a');
+    const fileName = value.Key;
+    const relPath = `../vault/${fileName}`;
+    anchor.href = relPath
+    anchor.innerHTML = fileName;
+    const span = doc.createElement('span');
+    const fileSize = AppConfig.FILE_UTILS.bytesToFileSizeString(value.Size);
+    span.innerHTML = ` (${fileSize})`;
+    item.appendChild(anchor);
+    item.appendChild(span);
+    return item;
 }
 
 async function populateFileList(logger, req, broadcaster){

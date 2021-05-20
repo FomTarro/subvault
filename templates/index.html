@@ -38,7 +38,11 @@
                 </div>
                 <div id='upload-container'>    
                     <div id='upload-content' class='management-content'>
-                        <label for="upload"><h2 id='upload-title'>Upload a File</h2></label>
+                        <label for="upload">
+                            <h2 id='upload-title'>Upload a File 
+                                <span id='upload-space-remaining' class='channel-link'>[100.00mb]</span>
+                            </h2>
+                        </label>
                         <form method="POST" action="/upload" enctype="multipart/form-data">
                             <div class="field" id='upload-field'>
                                 <input type="file" name="upload" id="upload">

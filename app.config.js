@@ -12,6 +12,7 @@ const appConfig = {
     get TWITCH_CLIENT_ID(){ return process.env.twitch_client_id; },
     get TWITCH_CLIENT_SECRET(){ return process.env.twitch_client_secret; },
     get TWITCH_ALLOWED_UPLOADERS(){ return process.env.twitch_uploader_logins.split(","); },
+    get PARTITION_PER_USER_BYTES(){ return process.env.partition_max_size_bytes; },
     get CALLBACK_URL() { return `${this.DOMAIN}/auth/twitch/callback`; },
 
     get S3_BUCKET_NAME(){ return process.env.s3_bucket_name; },
@@ -31,6 +32,7 @@ const appConfig = {
     // models
     get WEB_SERVER() { return require('./src/boundary/web.server'); },
     get LOGGER(){ return require('./src/utils/logger'); },
+    get LRU(){ return require('./src/utils/lru'); },
 
     // utils
     get HTTP_UTILS(){ return require('./src/utils/http.utils'); },

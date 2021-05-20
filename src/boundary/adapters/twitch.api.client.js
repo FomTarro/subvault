@@ -1,6 +1,5 @@
 const AppConfig = require('../../../app.config').AppConfig;
 
-
 async function getUserInfo(logger, username){
     const scope = 'no_scope'
     var info = {};
@@ -16,6 +15,13 @@ async function getUserInfo(logger, username){
             // TODO: map results to a domain data structure 
             // to insulate other code from API changes
             info = JSON.parse(buffer).data[0];
+            info = {
+                id: info.id,
+                login: info.login,
+                displayName: info.display_name,
+                description: info.description,
+                profileImage: info.profile_image_url
+            }
         },
         (error) => { 
             logger.error(error);

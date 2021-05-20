@@ -6,6 +6,8 @@ const s3 = new AWS.S3({
     secretAccessKey: AppConfig.S3_SECRET,
 });
 
+const usedStorage = new AppConfig.LRU(100);
+
 function joinPathForS3(...strings){
     return strings.join('/');
 }
@@ -71,13 +73,41 @@ async function getFileListForBroadcaster(logger, broadcaster){
         getFileList(logger, `${broadcaster}/`, resolve, reject);
     }).then(function(data){
         if(data.Contents){
-            return data.Contents.filter(item => item.Size > 0);
+            usedStorage.set(broadcaster, 
+                {
+                    allowed: AppConfig.PARTITION_PER_USER_BYTES,
+                    used: data.Contents.reduce((acc, curr) => acc + curr.Size, 0),
+                });
+            return {
+                paths: data.Contents.filter(item => item.Size > 0)
+            };
         }else{
-           return [];
+           return {
+               paths: []
+            }
         }
     }).catch(function(err){
-        return [];
+        return {
+            paths: [],
+        }
     });
+}
+
+async function getUsedStorageForBroadcaster(broadcaster){
+    if(usedStorage.get(broadcaster)){
+        return usedStorage.get(broadcaster)
+    }else{
+        console.log('updating used space cache via request...');
+        await getFileListForBroadcaster(broadcaster);
+        if(usedStorage.has(broadcaster) == true){
+            return usedStorage.get(broadcaster)
+        }else{
+            return {
+                allowed: 0,
+                used: 0
+            }
+        }
+    }
 }
 
 async function getFile(logger, filePath, resolve, reject){
@@ -140,3 +170,4 @@ module.exports.uploadFile = uploadFile;
 module.exports.deleteFiles = deleteFiles;
 module.exports.joinPathForS3 = joinPathForS3;
 module.exports.getFileOwner = getFileOwner;
+module.exports.getUsedStorageForBroadcaster = getUsedStorageForBroadcaster;

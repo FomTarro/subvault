@@ -53,9 +53,9 @@ async function setupPassport(app){
             url: 'https://api.twitch.tv/helix/users',
             method: 'GET',
             headers: {
-            'Client-ID': AppConfig.TWITCH_CLIENT_ID,
-            'Accept': 'application/vnd.twitchtv.v5+json',
-            'Authorization': 'Bearer ' + accessToken
+                'Client-ID': AppConfig.TWITCH_CLIENT_ID,
+                'Accept': 'application/vnd.twitchtv.v5+json',
+                'Authorization': 'Bearer ' + accessToken
             }
         };
 
@@ -183,17 +183,29 @@ async function setupRoutes(app){
                     // NOTE *.upload.* is the name of the html form tag
                     // if that changes, this code also needs to change
                     const fileContent = Buffer.from(req.files.upload.data, 'binary');
-                    const fileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
-                    const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, fileName); // AWS demands forward slashes!
-                    const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
-                    if(200 == result.status){
-                        res.redirect(`/manage`);
+                    const storage = await AppConfig.S3_CLIENT.getUsedStorageForBroadcaster(uploaderName);
+                    const remainingStorage = storage.allowed - storage.used;
+                    if(fileContent.length <= remainingStorage){
+                        const fileName = AppConfig.FILE_UTILS.makeFileNameSafe(req.files.upload.name);
+                        const filePath = AppConfig.S3_CLIENT.joinPathForS3(uploaderName, fileName); // AWS demands forward slashes!
+                        const result = await AppConfig.S3_CLIENT.uploadFile(logger, filePath, fileContent);
+                        if(200 == result.status){
+                            res.redirect(`/manage`);
+                        }else{
+                            const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
+                            'Upload Failed', 
+                            `An error occured while uploading your file: 
+                            [<i>${result ? result.message : 'No error message provided by the file server :('}</i>]`);
+                            res.status(500).send(page);
+                        }
                     }else{
                         const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
-                        'Upload Failed', 
-                        `An error occured while uploading your file: 
-                        [<i>${result ? result.message : 'No error message provided by the file server :('}</i>]`);
-                        res.status(500).send(page);
+                            'Too Big', 
+                            `The file you attempted to upload 
+                            has a size of ${AppConfig.FILE_UTILS.bytesToFileSizeString(fileContent.length)}, 
+                            but you only have ${AppConfig.FILE_UTILS.bytesToFileSizeString(remainingStorage)} 
+                            remaining.`);
+                            res.status(400).send(page);
                     }
                 }else{ 
                     const page = await AppConfig.POPULATE_HTML_PAGE.populateErrorPage(logger, req, 
