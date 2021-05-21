@@ -1,6 +1,7 @@
 const AppConfig = require('../../app.config').AppConfig;
 const express = require("express");
 const fileUpload = require('express-fileupload');
+const rateLimit = require("express-rate-limit");
 const path = require('path');
 const stream = require('stream');
 
@@ -8,6 +9,10 @@ async function setup(){
     const app = express();
     app.use(express.urlencoded({ extended: true }));
     app.set('trust proxy', 1);
+    app.use(rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100 // limit each IP to 100 requests per windowMs
+      }));
     // --- PASSPORT AUTH ---
     await setupPassport(app);
     // --- PAGES ---
