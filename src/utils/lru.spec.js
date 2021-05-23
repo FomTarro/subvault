@@ -35,4 +35,11 @@ describe("Tests LRU", () => {
         lru.reset();
         expect(lru.size).toBe(0);
     });
+
+    test("has works", async() => {
+        const lru = new AppConfig.LRU(3);
+        expect(lru.has('a')).toBe(false);
+        lru.set('a', 1);
+        expect(lru.has('a')).toBe(true);
+    });
 });

@@ -6,14 +6,25 @@ const s3 = new AWS.S3({
     secretAccessKey: AppConfig.S3_SECRET,
 });
 
-const usedStorage = new AppConfig.LRU(100);
+const broadcasterData = new AppConfig.LRU(100);
+var broadcasterList = undefined;
 
 function joinPathForS3(...strings){
-    return strings.join('/');
+    return strings.join('/'); // AWS demands forward slashes
 }
 
 function getFileOwner(filePath){
     return filePath ? filePath.split('/')[0] : '???';
+}
+
+function clearCacheForBroadcasters(logger, broadcasters){
+    broadcasterList = undefined;
+    broadcasters.forEach(fileOwner => {
+        logger.log(`clearing cache for ${fileOwner}...`)
+        if(broadcasterData.has(fileOwner)){
+            broadcasterData.get(fileOwner).paths = undefined;
+        } 
+    });
 }
 
 async function uploadFile(logger, fileName, fileContent){
@@ -31,6 +42,9 @@ async function uploadFile(logger, fileName, fileContent){
             resolve(data);
         })
     }).then(function(data){
+        // clear cache
+        const fileOwner = (getFileOwner(fileName));
+        clearCacheForBroadcasters(logger, [fileOwner]);
         return { 
             status: 200 
         }
@@ -39,6 +53,39 @@ async function uploadFile(logger, fileName, fileContent){
             status: 500,
             message: err
         }
+    });
+}
+
+async function deleteFiles(logger, filePathList){
+    const impactedBroadcasters = new Set();
+    return new Promise(function(resolve, reject){
+        var s3Params = {
+            Bucket: AppConfig.S3_BUCKET_NAME, 
+            Delete: {
+                Objects: filePathList.map(x => { 
+                    impactedBroadcasters.add(getFileOwner(x));
+                    return { Key: x }; 
+                }),
+            }
+        };
+        s3.deleteObjects(s3Params, (err, data) => {
+            if (err){
+                reject(err);
+            } 
+            resolve(data);
+        });
+    }).then(function(data){
+        logger.log(JSON.stringify(data));
+        clearCacheForBroadcasters(logger, impactedBroadcasters);
+        return {
+            status: 200
+        };
+    }).catch(function(err){
+        logger.error(err);
+        return {
+            status: 500,
+            message: err
+        };
     });
 }
 
@@ -51,6 +98,7 @@ async function getFileList(logger, prefix, resolve, reject){
     };
     s3.listObjectsV2 (s3params, (err, data) => {
         if (err) {
+            logger.error(err);
             reject(err);
         }
         resolve(data);
@@ -58,49 +106,64 @@ async function getFileList(logger, prefix, resolve, reject){
 }
 
 async function getBroadcasterFolderList(logger){
-    return new Promise(function(resolve, reject){
-        getFileList(logger, undefined, resolve, reject);
-    }).then(function(data){
-        return data.CommonPrefixes.map(value => value.Prefix.replace('/', ''));
-    }).catch(function(err){
-        logger.error(err);
-        return [];
-    });
+    if(broadcasterList){
+        logger.log('getting broadcaster list from cache');
+        return broadcasterList;
+    }else{
+        return new Promise(function(resolve, reject){
+            getFileList(logger, undefined, resolve, reject);
+        }).then(function(data){
+            broadcasterList = data.CommonPrefixes.map(value => value.Prefix.replace('/', ''))
+            return broadcasterList;
+        }).catch(function(err){
+            logger.error(err);
+            return [];
+        });
+    }
 }
 
 async function getFileListForBroadcaster(logger, broadcaster){
-    return new Promise(function(resolve, reject){
-        getFileList(logger, `${broadcaster}/`, resolve, reject);
-    }).then(function(data){
-        if(data.Contents){
-            usedStorage.set(broadcaster, 
-                {
-                    allowed: AppConfig.PARTITION_PER_USER_BYTES,
-                    used: data.Contents.reduce((acc, curr) => acc + curr.Size, 0),
-                });
-            return {
-                paths: data.Contents.filter(item => item.Size > 0)
-            };
-        }else{
-           return {
-               paths: []
-            }
-        }
-    }).catch(function(err){
+    if(broadcasterData.has(broadcaster) == true && broadcasterData.get(broadcaster).paths){
+        logger.log(`getting file list for ${broadcaster} from cache`);
         return {
-            paths: [],
+            paths: broadcasterData.get(broadcaster).paths,
         }
-    });
+    }else{
+        return new Promise(function(resolve, reject){
+            getFileList(logger, `${broadcaster}/`, resolve, reject);
+        }).then(function(data){
+            if(data.Contents){
+                const paths = data.Contents.filter(item => item.Size > 0);
+                broadcasterData.set(broadcaster, 
+                    {
+                        allowed: AppConfig.PARTITION_PER_USER_BYTES,
+                        used: data.Contents.reduce((acc, curr) => acc + curr.Size, 0),
+                        paths: paths,
+                    });
+                return {
+                    paths: paths,
+                }
+            }else{
+            return {
+                paths: []
+                }
+            }
+        }).catch(function(err){
+            return {
+                paths: [],
+            }
+        });
+    }
 }
 
 async function getUsedStorageForBroadcaster(broadcaster){
-    if(usedStorage.get(broadcaster)){
-        return usedStorage.get(broadcaster)
+    if(broadcasterData.has(broadcaster) == true){
+        return broadcasterData.get(broadcaster)
     }else{
         console.log('updating used space cache via request...');
         await getFileListForBroadcaster(broadcaster);
-        if(usedStorage.has(broadcaster) == true){
-            return usedStorage.get(broadcaster)
+        if(broadcasterData.has(broadcaster) == true){
+            return broadcasterData.get(broadcaster)
         }else{
             return {
                 allowed: 0,
@@ -135,39 +198,11 @@ async function getFileByPath(logger, filePath){
     });
 }
 
-async function deleteFiles(logger, filePathList){
-    return new Promise(function(resolve, reject){
-        var s3Params = {
-            Bucket: AppConfig.S3_BUCKET_NAME, 
-            Delete: {
-                Objects: filePathList.map(x => { return { Key: x }; }),
-            }
-        };
-        s3.deleteObjects(s3Params, (err, data) => {
-            if (err){
-                reject(err);
-            } 
-            resolve(data);
-        });
-    }).then(function(data){
-        logger.log(JSON.stringify(data));
-        return {
-            status: 200
-        };
-    }).catch(function(err){
-        logger.error(err);
-        return {
-            status: 500,
-            message: err
-        };
-    });
-}
-
 module.exports.getBroadcasterFolderList = getBroadcasterFolderList;
 module.exports.getFileListForBroadcaster = getFileListForBroadcaster;
+module.exports.getUsedStorageForBroadcaster = getUsedStorageForBroadcaster;
 module.exports.getFileByPath = getFileByPath;
 module.exports.uploadFile = uploadFile;
 module.exports.deleteFiles = deleteFiles;
 module.exports.joinPathForS3 = joinPathForS3;
 module.exports.getFileOwner = getFileOwner;
-module.exports.getUsedStorageForBroadcaster = getUsedStorageForBroadcaster;

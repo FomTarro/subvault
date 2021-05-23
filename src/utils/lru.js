@@ -26,7 +26,7 @@ class LRU {
         this.lastUpdate = new Date();
     }
 
-    has(hey){
+    has(key){
         return this.cache.has(key);
     }
 
