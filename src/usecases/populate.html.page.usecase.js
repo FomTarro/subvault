@@ -69,7 +69,7 @@ async function execute(logger, req, options){
             doc.getElementById('meta-img').content = imgUrl;
             doc.getElementById('meta-title').content = title;
             doc.getElementById('meta-desc').content = 
-            `Check out the files that ${broadcasterInfo.display_name} has shared with their Twitch subscribers!`;
+            `Check out the files that ${broadcasterInfo.displayName} has shared with their Twitch subscribers!`;
             const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
             files.paths.forEach((value) => {
                 const item = doc.createElement('li');

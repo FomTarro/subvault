@@ -9,9 +9,9 @@ The site is currently in closed beta, meaning that only select authorized Twitch
 
 ## Technical Details
 
-The backend of this site is a pretty straightforward Node.js Express server. Several peices of additional Express middleware have been used to help mitigate potential DDOS attacks and to help facilitate file upload, namely [`express-fileupload`](https://www.npmjs.com/package/express-fileupload) and [`express-rate-limit`](https://www.npmjs.com/package/express-rate-limit). 
+The backend of this site is a pretty straightforward Node.js Express server. Several peices of additional Express middleware have been used to help mitigate potential DDOS attacks and to help facilitate file upload, namely [`express-rate-limit`](https://www.npmjs.com/package/express-rate-limit) and [`express-fileupload`](https://www.npmjs.com/package/express-fileupload). 
 
-The site uses Twitch single-sign-on (SSO) to verify user accounts, ensuring that only suscribers have download permission,and that only authorized users have upload permission.
+The site uses Twitch single-sign-on (SSO) to verify user accounts, ensuring that only suscribers have download permission, and that only authorized users have upload permission.
 
 The files are then hosted on a non-public S3 bucket. While the webmaster has personal qualms about supporting Amazon as a company, he figures that if we're already in the Twitch ecosystem, we might as well make the most of it.
 
