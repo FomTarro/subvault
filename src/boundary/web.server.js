@@ -120,7 +120,7 @@ async function setupRoutes(app){
     // home
     app.get('/', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_HTML_PAGE.populateBroadcasterList(logger, req);
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateBroadcasterList(logger, req, req.query);
         res.status(200).send(page);
     });
 
@@ -130,7 +130,7 @@ async function setupRoutes(app){
 
     app.get('/broadcasters/:broadcaster', async (req, res) => {
         const logger = new AppConfig.LOGGER.Logger({path: req.path});
-        const page = await AppConfig.POPULATE_HTML_PAGE.populateFileList(logger, req, req.params.broadcaster);
+        const page = await AppConfig.POPULATE_HTML_PAGE.populateFileList(logger, req, req.params.broadcaster, req.query);
         res.status(200).send(page);
     })
 

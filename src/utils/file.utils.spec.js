@@ -27,4 +27,12 @@ describe("Tests File Utils", () => {
         const bytes = 4650000000;
         expect(AppConfig.FILE_UTILS.bytesToFileSizeString(bytes)).toBe("4.65gb");
     });
+    test("fuzzy search matches", async() => {
+        const str = "hello";
+        expect(AppConfig.FILE_UTILS.fuzzySearch(str, "hlo")).toBeGreaterThan(0.0);
+    });
+    test("fuzzy search doesn't match", async() => {
+        const str = "hello";
+        expect(AppConfig.FILE_UTILS.fuzzySearch(str, "h")).toBe(0.0);
+    });
 });

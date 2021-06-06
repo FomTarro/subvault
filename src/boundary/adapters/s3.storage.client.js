@@ -122,12 +122,34 @@ async function getBroadcasterFolderList(logger){
     }
 }
 
+async function getFilteredBroadcasterFolderList(logger, searchTerm){
+    const completeList = await getBroadcasterFolderList(logger);
+    if(!searchTerm){
+        return completeList;
+    }
+
+    const ratioList = [];
+    completeList.forEach((value) => {
+        const ratio = AppConfig.FILE_UTILS.fuzzySearch(value, searchTerm)
+        if(ratio > 0.0){
+            ratioList.push({
+                name: value,
+                ratio: ratio,
+            });
+        }
+    });
+
+    ratioList.sort((a, b) => { 
+        return b.ratio - a.ratio; 
+    });
+
+    return ratioList.map(x => x.name);
+}
+
 async function getFileListForBroadcaster(logger, broadcaster){
     if(broadcasterData.has(broadcaster) == true && broadcasterData.get(broadcaster).paths){
         logger.log(`getting file list for ${broadcaster} from cache`);
-        return {
-            paths: broadcasterData.get(broadcaster).paths,
-        }
+        return broadcasterData.get(broadcaster).paths;
     }else{
         return new Promise(function(resolve, reject){
             getFileList(logger, `${broadcaster}/`, resolve, reject);
@@ -140,20 +162,38 @@ async function getFileListForBroadcaster(logger, broadcaster){
                         used: data.Contents.reduce((acc, curr) => acc + curr.Size, 0),
                         paths: paths,
                     });
-                return {
-                    paths: paths,
-                }
+                return paths;
             }else{
-            return {
-                paths: []
-                }
+                return [];
             }
         }).catch(function(err){
-            return {
-                paths: [],
-            }
+            return [];
         });
     }
+}
+
+async function getFilteredFileListForBroadcaster(logger, broadcaster, searchTerm){
+    const completeList = await getFileListForBroadcaster(logger, broadcaster);
+    if(!searchTerm){
+        return completeList;
+    }
+
+    // TODO: abstract this out somehow
+    const ratioList = [];
+    completeList.forEach((value) => {
+        const ratio = AppConfig.FILE_UTILS.fuzzySearch(value.Key, searchTerm)
+        if(ratio > 0.0){
+            ratioList.push({
+                name: value,
+                ratio: ratio,
+            });
+        }
+    });
+
+    ratioList.sort((a, b) => { 
+        return b.ratio - a.ratio; 
+    });
+    return ratioList.map(x => x.name);
 }
 
 async function getUsedStorageForBroadcaster(broadcaster){
@@ -198,8 +238,12 @@ async function getFileByPath(logger, filePath){
     });
 }
 
+function flterAndSort(completeList, searchTerm){}
+
 module.exports.getBroadcasterFolderList = getBroadcasterFolderList;
+module.exports.getFilteredBroadcasterFolderList = getFilteredBroadcasterFolderList;
 module.exports.getFileListForBroadcaster = getFileListForBroadcaster;
+module.exports.getFilteredFileListForBroadcaster = getFilteredFileListForBroadcaster;
 module.exports.getUsedStorageForBroadcaster = getUsedStorageForBroadcaster;
 module.exports.getFileByPath = getFileByPath;
 module.exports.uploadFile = uploadFile;

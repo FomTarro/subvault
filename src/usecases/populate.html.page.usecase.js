@@ -30,15 +30,21 @@ async function execute(logger, req, options){
         const list = doc.getElementById('list');
         doc.getElementById('upload-container').remove();
         doc.getElementById('list-title').innerHTML = 'Broadcasters';
-        const broadcasters = await AppConfig.S3_CLIENT.getBroadcasterFolderList(logger);
-        broadcasters.forEach((value) => {
-            const item = doc.createElement('li');
-            const anchor = doc.createElement('a');
-            anchor.href = `/broadcasters/${value}`;
-            anchor.innerHTML = value;
-            item.appendChild(anchor);
+        const broadcasters = await AppConfig.S3_CLIENT.getFilteredBroadcasterFolderList(logger, options.search);
+        if(broadcasters.length > 0){
+            broadcasters.forEach((value) => {
+                const item = doc.createElement('li');
+                const anchor = doc.createElement('a');
+                anchor.href = `/broadcasters/${value}`;
+                anchor.innerHTML = value;
+                item.appendChild(anchor);
+                list.appendChild(item);
+            });
+        }else{
+            const item = doc.createElement('div');
+            item.innerHTML = `No broadcasters to display. Sorry about that.`
             list.appendChild(item);
-        });
+        }
     }
     else if(pageCodes.BROADCASTER == options.code){
         const list = doc.getElementById('list');
@@ -70,8 +76,9 @@ async function execute(logger, req, options){
             doc.getElementById('meta-title').content = title;
             doc.getElementById('meta-desc').content = 
             `Check out the files that ${broadcasterInfo.displayName} has shared with their Twitch subscribers!`;
-            const files = await AppConfig.S3_CLIENT.getFileListForBroadcaster(logger, options.broadcaster);
-            files.paths.forEach((value) => {
+            doc.getElementById('search').placeholder = 'Search for a file...'
+            const files = await AppConfig.S3_CLIENT.getFilteredFileListForBroadcaster(logger, options.broadcaster, options.search);
+            files.forEach((value) => {
                 const item = doc.createElement('li');
                 const span = makeFileListEntry(doc, value);
                 item.append(span);
@@ -113,7 +120,7 @@ async function execute(logger, req, options){
             const storage = await AppConfig.S3_CLIENT.getUsedStorageForBroadcaster(uploaderName);
             doc.getElementById('upload-space-remaining').innerHTML = 
             `[${AppConfig.FILE_UTILS.bytesToFileSizeString(AppConfig.PARTITION_PER_USER_BYTES - storage.used)} remaining]`
-            files.paths.forEach((value) => {
+            files.forEach((value) => {
                 const item = doc.createElement('li');
                 const checkbox = doc.createElement('input');
                 checkbox.type = 'checkbox';
@@ -155,16 +162,18 @@ function makeFileListEntry(doc, value){
     return item;
 }
 
-async function populateFileList(logger, req, broadcaster){
+async function populateFileList(logger, req, broadcaster, search){
     return await execute(logger, req, {
         broadcaster: broadcaster,
         code: pageCodes.BROADCASTER,
+        search: search != undefined ? search.search : undefined
     })
 }
 
-async function populateBroadcasterList(logger, req){
+async function populateBroadcasterList(logger, req, search){
     return await execute(logger, req, {
         code: pageCodes.HOME,
+        search: search != undefined ? search.search : undefined
     })
 }
 

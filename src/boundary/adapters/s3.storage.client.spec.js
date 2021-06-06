@@ -21,6 +21,13 @@ describe("Tests S3 Storage client", () => {
         expect(broadcasters.length).toBeGreaterThanOrEqual(1);
     });
 
+    test("gets filtered Broadcaster folders", async() => {
+        const logger = new AppConfig.LOGGER.Logger({});
+        const input = ["fomtarro", "bonbombs"]
+        var broadcasters = await AppConfig.S3_CLIENT.getFilteredBroadcasterFolderList(logger, "fom")
+        expect(broadcasters).toEqual(input)
+    });
+
     test("gets known test file", async() => {
         const logger = new AppConfig.LOGGER.Logger({});
         var file = await AppConfig.S3_CLIENT.getFileByPath(logger, 'fomtarro/blush.png');
